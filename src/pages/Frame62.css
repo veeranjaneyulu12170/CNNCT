@@ -1,0 +1,592 @@
+.frame-62 {
+  background: #ffffff;
+  border-radius: 40px;
+  height: 792px; /* Original height */
+  position: relative;
+  overflow: hidden;
+  
+  /* Scale down everything inside proportionally */
+  transform: scale(0.85); /* Adjust scale factor as needed */
+  transform-origin: top center; /* Keeps it centered */
+}
+
+
+.frame-62 .frame-63 {
+  display: flex;
+  flex-direction: row;
+  gap: 28.95px;
+  align-items: center;
+  justify-content: flex-start;
+  position: absolute;
+  left: 130px;
+  top: 139px;
+}
+.frame-62 .event-topic {
+  text-align: left;
+  font-family: "Poppins-Medium", sans-serif;
+  font-size: 19.302324295043945px;
+  letter-spacing: 0.1em;
+  font-weight: 500;
+  position: relative;
+  width: 227.61px;
+}
+.event-topic-span {
+  color: #343434;
+  font-family: "Poppins-Medium", sans-serif;
+  font-size: 19.302324295043945px;
+  letter-spacing: 0.1em;
+  font-weight: 500;
+}
+.event-topic-span2 {
+  color: #8a8a8a;
+  font-family: "Poppins-Medium", sans-serif;
+  font-size: 19.302324295043945px;
+  letter-spacing: 0.1em;
+  font-weight: 500;
+}
+.event-topic-span3 {
+  color: #b6b6b6;
+  font-family: "Poppins-Medium", sans-serif;
+  font-size: 19.302324295043945px;
+  letter-spacing: 0.1em;
+  font-weight: 500;
+}
+.frame-62 .text-input {
+  background: #ffffff;
+  border-radius: 16.09px;
+  border-style: solid;
+  border-color: #b6b6b6;
+  border-width: 1.61px;
+  padding: 0; /* Remove padding from container */
+  flex-shrink: 0;
+  width: 573.44px;
+  height: 62.73px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+
+.frame-62 .set-a-conference-topic-before-it-starts {
+  color: #8a8a8a;
+  text-align: left;
+  font-family: "Poppins-Medium", sans-serif;
+  font-size: 14.48px;
+  letter-spacing: 0.15em;
+  font-weight: 500;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  padding: 0 19.3px; /* Ensure spacing inside */
+  outline: none; /* Remove focus outline */
+  box-sizing: border-box; /* Ensure width includes padding */
+}
+
+
+.frame-62 .date-and-time {
+  text-align: left;
+  font-family: "Poppins-Medium", sans-serif;
+  font-size: 19.302324295043945px;
+  letter-spacing: 0.15em;
+  font-weight: 500;
+  position: absolute;
+  left: 130px;
+  top: 529.96px;
+  width: 227.61px;
+}
+.date-and-time-span {
+  color: #343434;
+  font-family: "Poppins-Medium", sans-serif;
+  font-size: 19.302324295043945px;
+  letter-spacing: 0.15em;
+  font-weight: 500;
+}
+.date-and-time-span2 {
+  color: #b6b6b6;
+  font-family: "Poppins-Medium", sans-serif;
+  font-size: 19.302324295043945px;
+  letter-spacing: 0.15em;
+  font-weight: 500;
+}
+.frame-62 .set-duration {
+  color: #343434;
+  text-align: left;
+  font-family: "Poppins-Medium", sans-serif;
+  font-size: 19.302324295043945px;
+  letter-spacing: 0.15em;
+  font-weight: 500;
+  position: absolute;
+  left: 130px;
+  top: 606.37px;
+  width: 227.61px;
+}
+.frame-62 .meeting-type {
+  color: #343434;
+  text-align: left;
+  font-family: "Poppins-Medium", sans-serif;
+  font-size: 19.302324295043945px;
+  letter-spacing: 0.15em;
+  font-weight: 500;
+  position: absolute;
+  left: 580px;
+  top: 606.37px;
+  width: 227.61px;
+}
+.frame-62 .text-input2 {
+  background: #ffffff;
+  border-radius: 16.09px;
+  border-style: solid;
+  border-color: #b6b6b6;
+  border-width: 1.61px;
+  padding: 22.52px 19.3px 22.52px 19.3px;
+  width: 123.05px;
+  height: 62.73px;
+  position: absolute;
+  left: 386.56px;
+  top: 510.26px;
+  overflow: hidden;
+}
+.frame-62 .dd-mm-yy {
+  color: #1877f2;
+  text-align: left;
+  font-family: "Poppins-Medium", sans-serif;
+  font-size: 14.476743698120117px;
+  letter-spacing: 0.15em;
+  font-weight: 500;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+}
+.frame-62 .frame-65 {
+  display: flex;
+  flex-direction: row;
+  gap: 28.95px;
+  align-items: center;
+  justify-content: flex-start;
+  position: absolute;
+  left: 130px;
+  top: 214.2px;
+}
+.frame-62 .password {
+  text-align: left;
+  font-family: "Poppins-Medium", sans-serif;
+  font-size: 19.3px;
+  letter-spacing: 0.15em;
+  font-weight: 500;
+  position: relative;
+  width: 227.61px;
+}
+
+.password-span {
+  color: #343434;
+  font-family: "Poppins-Medium", sans-serif;
+  font-size: 19.3px;
+  letter-spacing: 0.15em;
+  font-weight: 500;
+}
+
+.password-span2 {
+  color: #8a8a8a;
+  font-family: "Poppins-Medium", sans-serif;
+  font-size: 19.3px;
+  letter-spacing: 0.15em;
+  font-weight: 500;
+}
+
+.frame-62 .text-input3 {
+  background: #ffffff;
+  border-radius: 16.09px;
+  border-style: solid;
+  border-color: #b6b6b6;
+  border-width: 1.61px;
+  flex-shrink: 0;
+  width: 573.44px;
+  height: 62.73px;
+  position: relative;
+  overflow: hidden;
+  display: flex; /* Ensures child input takes full height */
+  align-items: center; /* Centers text vertically */
+  padding: 0; /* Remove unnecessary padding */
+}
+
+.frame-62 .text-input3 input {
+  color: #8a8a8a;
+  text-align: left;
+  font-family: "Poppins-Medium", sans-serif;
+  font-size: 19.3px;
+  letter-spacing: 0.15em;
+  font-weight: 500;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  padding: 0 19.3px; /* Add horizontal padding only */
+  outline: none; /* Remove focus outline */
+  box-sizing: border-box; /* Ensure padding is included in width */
+}
+
+.frame-62 .password2 {
+  color: #8a8a8a;
+  text-align: left;
+  font-family: "Poppins-Medium", sans-serif;
+  font-size: 14.476743698120117px;
+  letter-spacing: 0.15em;
+  font-weight: 500;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+}
+.frame-62 .desciption {
+  color: #343434;
+  text-align: left;
+  font-family: "Poppins-Medium", sans-serif;
+  font-size: 19.302324295043945px;
+  letter-spacing: 0.15em;
+  font-weight: 500;
+  position: absolute;
+  left: 130px;
+  top: 385.11px;
+  width: 227.61px;
+ 
+
+  
+}
+.frame-62 .text-input4 {
+  background: #ffffff;
+  border-radius: 16.09px;
+  border-style: solid;
+  border-color: #b6b6b6;
+  border-width: 1.61px;
+  padding: 22.52px 19.3px 22.52px 19.3px;
+  width: 573.44px;
+  height: 112.6px;
+  position: absolute;
+  left: 386.56px;
+  top: 365.4px;
+  overflow: hidden;
+  outline: none;
+}
+.frame-62 .frame-66 {
+  display: flex;
+  flex-direction: row;
+  gap: 28.95px;
+  align-items: center;
+  justify-content: flex-start;
+  position: absolute;
+  left: 130px;
+  top: 289.8px;
+}
+.frame-62 .host-name {
+  text-align: left;
+  font-family: "Poppins-Medium", sans-serif;
+  font-size: 19.302324295043945px;
+  letter-spacing: 0.15em;
+  font-weight: 500;
+  position: relative;
+  width: 227.61px;
+}
+.host-name-span {
+  color: #343434;
+  font-family: "Poppins-Medium", sans-serif;
+  font-size: 19.302324295043945px;
+  letter-spacing: 0.15em;
+  font-weight: 500;
+}
+.host-name-span2 {
+  color: #8a8a8a;
+  font-family: "Poppins-Medium", sans-serif;
+  font-size: 19.302324295043945px;
+  letter-spacing: 0.15em;
+  font-weight: 500;
+}
+.host-name-span3 {
+  color: #b6b6b6;
+  font-family: "Poppins-Medium", sans-serif;
+  font-size: 19.302324295043945px;
+  letter-spacing: 0.15em;
+  font-weight: 500;
+}
+.frame-62 .text-input5 {
+  background: #ffffff;
+  border-radius: 16.09px;
+  border-style: solid;
+  border-color: #b6b6b6;
+  border-width: 1.61px;
+  padding: 22.52px 19.3px 22.52px 19.3px;
+  flex-shrink: 0;
+  width: 573.44px;
+  height: 62.73px;
+  position: relative;
+  overflow: hidden;
+}
+.frame-62 .sarthak-pal {
+  color: #343434;
+  text-align: left;
+  font-family: "Poppins-SemiBold", sans-serif;
+  font-size: 14.476743698120117px;
+  letter-spacing: 0.15em;
+  font-weight: 600;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+}
+.frame-62 .text-input6,
+.frame-62 .text-input7,
+.frame-62 .text-input8,
+.frame-62 .text-input9 {
+  background: #ffffff;
+  border-radius: 16.09px;
+  border-style: solid;
+  border-color: #b6b6b6;
+  border-width: 1.61px;
+  padding: 0 px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  position: absolute;
+  overflow: hidden;
+  outline: none;
+}
+.frame-62 .text-input6 {
+  width: 99.73px;
+  height: 62.73px;
+  left: 522.48px;
+  top: 509.45px;
+  
+}
+.frame-62 .text-input7 {
+  width: 177.74px;
+  height: 62.73px;
+  left: 386.56px;
+  top: 585.86px;
+}
+.frame-62 .text-input8 {
+  width: 71.58px;
+  height: 62.73px;
+  left: 635.08px;
+  top: 509.45px;
+}
+.frame-62 .text-input9 {
+  width: 240.47px;
+  height: 62.73px;
+  left: 719.53px;
+  top: 509.45px;
+}
+.frame-62 ._02-30,
+.frame-62 ._1-hour,
+.frame-62 .pm,
+.frame-62 .utc-5-00-delhi {
+  color: #343434;
+  text-align: left;
+  font-family: "Poppins-SemiBold", sans-serif;
+  font-size: 14.476743698120117px;
+  letter-spacing: 0.15em;
+  font-weight: 600;
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+}
+.frame-62 .line-12 {
+  width: 100%;
+  height: 0 px;
+  position: absolute;
+  left: 3px;
+  top: 108.25px;
+}
+.frame-62 .line-13 {
+  margin-top: -1.5px;
+  border-style: solid;
+  border-color: #b6b6b6;
+  border-width: 1.5px 0 0 0;
+  width: 100%;
+  height: 0px;
+  position: absolute;
+  left: 3px;
+  top: 490px;
+}
+.frame-62 .frame-1171274818,
+.frame-62 .frame-1171274819 {
+  border-radius: 15px;
+  padding: 14px 74px;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  width: 190px;
+  height: 50px;
+  position: absolute;
+  top: 699px;
+}
+.frame-62 .frame-1171274818 {
+  background: #1877f2;
+  left: 770px;
+}
+.frame-62 .frame-1171274819 {
+  background: #f3f3f1;
+  left: 545px;
+}
+.frame-62 .save {
+  color: #ffffff;
+  text-align: center;
+  font-family: "Poppins-Medium", sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+.frame-62 .cancel {
+  color: #000000;
+  text-align: center;
+  font-family: "Poppins-Medium", sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+.frame-62 .label2 {
+  color: #1877f2;
+  text-align: left;
+  font-family: "Roboto-Medium", sans-serif;
+  font-size: 32px;
+  line-height: 36px;
+  font-weight: 500;
+  position: absolute;
+  left: calc(50% - 99.5px);
+  top: 43px;
+}
+
+/* Add font imports */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&family=Roboto:wght@500&display=swap');
+
+.success-notification {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #10B981;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 1000;
+  animation: slideDown 0.3s ease-out;
+}
+
+.success-notification .close-button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0 4px;
+  margin-left: 8px;
+}
+
+.success-notification .close-button:hover {
+  opacity: 0.8;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translate(-50%, -100%);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+}
+
+.frame-63 {
+  margin-bottom: 24px;
+}
+
+.frame-64 {
+  margin-bottom: 24px;
+}
+
+.meeting-type {
+  color: #000;
+  font-family: Poppins;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  margin-bottom: 8px;
+}
+
+.meeting-type-span {
+  color: #000;
+}
+
+.meeting-type-span2 {
+  color: #000;
+}
+
+.meeting-type-span3 {
+  color: #FF0000;
+}
+
+.text-input5 input {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  font-family: Poppins;
+  font-size: 14px;
+  color: #000;
+  background-color: #fff;
+}
+
+.text-input5 input::placeholder {
+  color: #6B7280;
+}
+
+.text-input5 input:focus {
+  outline: none;
+  border-color: #2563EB;
+}
+
+.frame-62 .meeting-type-input {
+  background: #ffffff;
+  border-radius: 16.09px;
+  border-style: solid;
+  border-color: #b6b6b6;
+  border-width: 1.61px;
+  width: 177.74px;
+  height: 62.73px;
+  position: absolute;
+  left: 836.56px;
+  top: 585.86px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+}
+
+.frame-62 .meeting-type-input select {
+  color: #343434;
+  text-align: left;
+  font-family: "Poppins-SemiBold", sans-serif;
+  font-size: 14.476743698120117px;
+  letter-spacing: 0.15em;
+  font-weight: 600;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  padding: 0 19.3px;
+  outline: none;
+  appearance: none;
+} 
