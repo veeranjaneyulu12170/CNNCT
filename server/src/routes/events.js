@@ -24,14 +24,33 @@ router.post('/', protect, async (req, res) => {
     // Set default status
     const status = req.body.status || 'Pending';
     
+    // Parse meetingDetails safely
+    let meetingDetails = req.body.meetingDetails;
+    if (!meetingDetails) {
+      try {
+        meetingDetails = JSON.parse(description);
+      } catch (err) {
+        console.error('Error parsing description as meetingDetails:', err);
+        meetingDetails = {
+          date: '',
+          time: '',
+          duration: '',
+          meetingType: '',
+          hostName: '',
+          eventTopic: title,
+          description: description
+        };
+      }
+    }
+    
     // Create the event
     const event = await Event.create({
       ...req.body,
-      user: req.user.id,
+      user: req.user._id,
+      createdBy: req.user._id,
       status,
       participants,
-      // Make sure these fields exist
-      meetingDetails: req.body.meetingDetails || JSON.parse(description),
+      meetingDetails,
       createdAt: new Date()
     });
     
@@ -40,7 +59,7 @@ router.post('/', protect, async (req, res) => {
     res.status(201).json(event);
   } catch (error) {
     console.error('Error creating event:', error);
-    res.status(400).json({ message: error.message });
+    res.status(400).json({ message: 'Failed to create event. Please check all required fields and try again.' });
   }
 });
 
