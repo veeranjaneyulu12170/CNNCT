@@ -88,7 +88,9 @@ export default function Availability() {
           return;
         }
 
-        const response = await axios.get('http://localhost:5000/api/availability', {
+        const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+
+        const response = await axios.get(`${apiBaseUrl}/api/availability`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -170,6 +172,8 @@ export default function Availability() {
           return;
         }
 
+        const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+
         // Transform the weekly schedule data to match server format
         const availabilityData = Object.entries(weeklySchedule).map(([day, schedule]) => {
           const dayMap: { [key: string]: number } = {
@@ -206,7 +210,7 @@ export default function Availability() {
 
         // Send each day's availability separately
         for (const dayAvailability of availabilityData) {
-          const response = await axios.post('http://localhost:5000/api/availability', dayAvailability, {
+          const response = await axios.post(`${apiBaseUrl}/api/availability`, dayAvailability, {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
@@ -216,7 +220,7 @@ export default function Availability() {
           if (response.status === 200) {
             console.log('Availability saved successfully for day:', dayAvailability.dayOfWeek);
             // After saving, fetch the updated availability
-            const fetchResponse = await axios.get('http://localhost:5000/api/availability', {
+            const fetchResponse = await axios.get(`${apiBaseUrl}/api/availability`, {
               headers: {
                 'Authorization': `Bearer ${token}`
               }

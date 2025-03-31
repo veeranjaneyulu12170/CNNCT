@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import './Frame62.css';
 import line12 from '/public/images/line-120.svg';
 import axios from 'axios';
@@ -27,8 +27,13 @@ interface SecondFormData {
 
 export default function CreateEvent() {
   const navigate = useNavigate();
+  const { id: eventId } = useParams(); // Get event ID from URL if editing
+  const isEditMode = !!eventId;
+  
   const [showSecondForm, setShowSecondForm] = useState(false);
   const [showSuccessNotification, setShowSuccessNotification] = useState(false);
+  const [loading, setLoading] = useState(isEditMode);
+  const [error, setError] = useState<string | null>(null);
   
   const [firstFormData, setFirstFormData] = useState<FirstFormData>({
     eventTopic: '',
@@ -51,11 +56,15 @@ export default function CreateEvent() {
     profileImage: null
   });
 
+  const [emailInput, setEmailInput] = useState('');
+
   const colorOptions = [
     '#FF6B00', // Orange
     '#FFFFFF', // White
     '#000000', // Black
   ];
+
+  const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
   const handleFirstFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -115,6 +124,8 @@ export default function CreateEvent() {
         }),
         link: secondFormData.link,
         emails: secondFormData.emails,
+        backgroundColor: secondFormData.backgroundColor,
+        profileImage: secondFormData.profileImage,
         status: 'Accepted',
         participants: secondFormData.emails.map(email => ({
           email,
@@ -124,30 +135,44 @@ export default function CreateEvent() {
           date: formattedDate,
           time: formattedTime,
           duration: firstFormData.duration,
+          timeZone: firstFormData.timeZone,
           meetingType: firstFormData.meetingType || 'One-on-One',
           hostName: firstFormData.hostName,
-          eventTopic: firstFormData.eventTopic,
           description: firstFormData.description,
           password: firstFormData.password
         }
       };
 
-      const response = await axios.post('http://localhost:5000/api/events', eventData, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      let response;
+      
+      // Use PUT for updating, POST for creating
+      if (isEditMode && eventId) {
+        response = await axios.put(`${apiBaseUrl}/api/events/${eventId}`, eventData, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        console.log('Event updated:', response.data);
+      } else {
+        response = await axios.post(`${apiBaseUrl}/api/events`, eventData, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        console.log('Event created:', response.data);
+      }
 
-      if (response.status === 201) {
+      if (response.status === 200 || response.status === 201) {
         setShowSuccessNotification(true);
         setTimeout(() => {
           navigate('/event-types');
         }, 1500);
       }
     } catch (error) {
-      console.error('Error creating event:', error);
-      alert('Failed to create event. Please try again.');
+      console.error(`Error ${isEditMode ? 'updating' : 'creating'} event:`, error);
+      alert(`Failed to ${isEditMode ? 'update' : 'create'} event. Please try again.`);
     }
   };
 
@@ -210,6 +235,43 @@ export default function CreateEvent() {
     }
   };
 
+  const handleAddEmails = (input: string) => {
+    // Split by commas, clean up the entries, and filter empty values
+    const newEmails = input
+      .split(',')
+      .map(email => email.trim())
+      .filter(email => email !== '');
+    
+    console.log('Processing emails:', newEmails);
+    
+    if (newEmails.length === 0) return;
+    
+    // Add new emails to the existing list (avoiding duplicates)
+    setSecondFormData(prev => {
+      const existingEmails = new Set(prev.emails);
+      newEmails.forEach(email => existingEmails.add(email));
+      return {
+        ...prev,
+        emails: Array.from(existingEmails)
+      };
+    });
+    
+    // Clear the input after adding emails
+    setEmailInput('');
+  };
+
+  const handleEmailKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const input = e.currentTarget.value;
+      if (input.trim()) {
+        handleAddEmails(input);
+        // Clear the input
+        e.currentTarget.value = '';
+      }
+    }
+  };
+
   const formContainerStyle = {
    
     backgroundColor: '#f3f3f1',
@@ -229,11 +291,136 @@ export default function CreateEvent() {
     boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
   };
 
+  // Add useEffect to fetch event data if in edit mode
+  useEffect(() => {
+    const fetchEventData = async () => {
+      if (!eventId) return;
+      
+      try {
+        setLoading(true);
+        const token = localStorage.getItem('token');
+        
+        if (!token) {
+          throw new Error('No authentication token found');
+        }
+        
+        const response = await axios.get(`${apiBaseUrl}/api/events/${eventId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        const event = response.data;
+        console.log('Fetched event for editing:', event);
+        
+        // Process meeting details
+        let meetingDetails;
+        try {
+          meetingDetails = event.meetingDetails || 
+            (event.description ? JSON.parse(event.description) : null);
+        } catch (err) {
+          console.error('Error parsing meeting details:', err);
+          meetingDetails = {};
+        }
+        
+        // Parse time and period
+        let time = meetingDetails?.time || '02:30';
+        let period: 'AM' | 'PM' = 'PM';
+        
+        if (time.toLowerCase().includes('am')) {
+          period = 'AM' as 'AM';
+          time = time.toLowerCase().replace('am', '');
+        } else if (time.toLowerCase().includes('pm')) {
+          period = 'PM' as 'PM';
+          time = time.toLowerCase().replace('pm', '');
+        }
+        
+        // Format date for input field
+        let formattedDate = '';
+        try {
+          const dateString = meetingDetails?.date;
+          if (dateString) {
+            const date = new Date(dateString);
+            formattedDate = date.toISOString().split('T')[0];
+          }
+        } catch (err) {
+          console.error('Error formatting date:', err);
+        }
+        
+        // Update form data
+        setFirstFormData({
+          eventTopic: event.title || '',
+          password: meetingDetails?.password || '',
+          hostName: meetingDetails?.hostName || '',
+          description: meetingDetails?.description || '',
+          date: formattedDate || '',
+          time: time || '02:30',
+          duration: meetingDetails?.duration || '1 hour',
+          timeZone: meetingDetails?.timeZone || '(UTC +5:30 Delhi)',
+          period: period,
+          meetingType: meetingDetails?.meetingType || ''
+        });
+        
+        setSecondFormData({
+          title: event.title || '',
+          backgroundColor: event.backgroundColor || '#000000',
+          link: event.link || '',
+          emails: event.emails || [],
+          profileImage: event.profileImage || null
+        });
+        
+        // Show second form if we have event data
+        setShowSecondForm(true);
+      } catch (error) {
+        console.error('Error fetching event data:', error);
+        setError('Failed to load event data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    if (isEditMode) {
+      fetchEventData();
+    }
+  }, [eventId, apiBaseUrl, isEditMode]);
+
+  if (loading) {
+    return (
+      <div style={formContainerStyle} className="flex items-center justify-center">
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading event data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={formContainerStyle} className="flex items-center justify-center">
+        <div className="text-center py-12 text-red-600">
+          {error}
+          <div className="mt-4">
+            <button
+              onClick={() => navigate('/event-types')}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md"
+            >
+              Go Back
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!showSecondForm) {
     return (
       <div style={formContainerStyle}>
         <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-black font-poppins">Create Event</h1>
+          <h1 className="text-2xl font-semibold text-black font-poppins">
+            {isEditMode ? 'Edit Event' : 'Create Event'}
+          </h1>
           <p className="text-black opacity-90 text-sm font-poppins">Create events to share for people to book on your calendar.</p>
           <p className="text-black opacity-90 text-sm font-poppins">New</p>
         </div>
@@ -450,7 +637,7 @@ export default function CreateEvent() {
     <div style={formContainerStyle}>
       {showSuccessNotification && (
         <div className="success-notification">
-          <span>Successfully added link</span>
+          <span>Successfully {isEditMode ? 'updated' : 'added'} event</span>
           <button 
             onClick={() => setShowSuccessNotification(false)}
             className="close-button"
@@ -461,7 +648,9 @@ export default function CreateEvent() {
       )}
       
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-black font-poppins">Create Event</h1>
+        <h1 className="text-2xl font-semibold text-black font-poppins">
+          {isEditMode ? 'Edit Event' : 'Create Event'}
+        </h1>
         <p className="text-black font-poppins opacity-90 text-sm">Create events to share for people to book on your calendar.</p>
         <p className="text-black font-poppins opacity-90 text-sm">New</p>
       </div>
@@ -614,23 +803,55 @@ export default function CreateEvent() {
                 <span>Add Emails</span>
                 <span className="text-red-600">*</span>
               </div>
-              <input
-                type="text"
-                required
-                placeholder="Add member emails (comma-separated)"
-                value={secondFormData.emails.join(', ')}
-                onChange={(e) => {
-                  const emailsArray = e.target.value
-                    .split(',')
-                    .map(email => email.trim())
-                    .filter(email => email !== '');
-                  setSecondFormData(prev => ({ 
-                  ...prev, 
-                    emails: emailsArray
-                  }));
-                }}
-                className="px-4 py-2 text-sm !rounded-2xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none h-[50px] w-full max-w-[653px] text-gray-600"
-              />
+              <div className="w-full max-w-[653px]">
+                <input
+                  type="text"
+                  placeholder="Add member emails (comma-separated)"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  onBlur={() => {
+                    if (emailInput.trim()) {
+                      handleAddEmails(emailInput);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (emailInput.trim()) {
+                        handleAddEmails(emailInput);
+                        setEmailInput('');
+                      }
+                    }
+                  }}
+                  className="px-4 py-2 text-sm !rounded-2xl border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none h-[50px] w-full text-gray-600"
+                />
+                {secondFormData.emails.length > 0 && (
+                  <div className="mt-2 text-xs text-gray-600 bg-blue-50 p-2 rounded">
+                    <strong>{secondFormData.emails.length} email(s) added:</strong>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {secondFormData.emails.map((email, index) => (
+                        <span key={index} className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full inline-flex items-center">
+                          {email}
+                          <button 
+                            type="button" 
+                            onClick={() => {
+                              const newEmails = [...secondFormData.emails];
+                              newEmails.splice(index, 1);
+                              setSecondFormData(prev => ({
+                                ...prev,
+                                emails: newEmails
+                              }));
+                            }} 
+                            className="ml-1 text-blue-800 hover:text-blue-900 font-bold"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
           

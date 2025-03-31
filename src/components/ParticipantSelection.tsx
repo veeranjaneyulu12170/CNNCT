@@ -19,10 +19,12 @@ interface ParticipantSelectionProps {
 }
 
 export default function ParticipantSelection({ eventId, participants, onParticipantStatusChange }: ParticipantSelectionProps) {
+  const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+
   const handleAccept = async (participantId: string) => {
     try {
       const response = await axios.put(
-        `http://localhost:5000/api/events/${eventId}/participants/${participantId}`,
+        `${apiBaseUrl}/api/events/${eventId}/participants/${participantId}`,
         { status: 'Accepted' },
         {
           headers: {
@@ -45,7 +47,7 @@ export default function ParticipantSelection({ eventId, participants, onParticip
   const handleReject = async (participantId: string) => {
     try {
       const response = await axios.put(
-        `http://localhost:5000/api/events/${eventId}/participants/${participantId}`,
+        `${apiBaseUrl}/api/events/${eventId}/participants/${participantId}`,
         { status: 'Rejected' },
         {
           headers: {

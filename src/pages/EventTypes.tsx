@@ -33,6 +33,7 @@ export default function EventTypes() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const location = useLocation();
+  const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
   const fetchEvents = async () => {
     try {
@@ -44,7 +45,7 @@ export default function EventTypes() {
         throw new Error('No authentication token found');
       }
 
-      const response = await axios.get('http://localhost:5000/api/events', {
+      const response = await axios.get(`${apiBaseUrl}/api/events`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -72,7 +73,7 @@ export default function EventTypes() {
 
       const eventToUpdate = updatedEvents.find(event => event._id === eventId);
 
-      await axios.patch(`http://localhost:5000/api/events/${eventId}`, 
+      await axios.patch(`${apiBaseUrl}/api/events/${eventId}`, 
         { isAvailable: eventToUpdate?.isAvailable }, 
         {
           headers: {
@@ -95,7 +96,7 @@ export default function EventTypes() {
       const token = localStorage.getItem('token');
       const { _id, ...eventToCopy } = event;
       
-      const response = await axios.post('http://localhost:5000/api/events', 
+      const response = await axios.post(`${apiBaseUrl}/api/events`, 
         { ...eventToCopy, title: `Copy of ${event.title}` }, 
         {
           headers: {
@@ -116,7 +117,7 @@ export default function EventTypes() {
   const handleDeleteEvent = async (eventId: string) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:5000/api/events/${eventId}`, {
+      await axios.delete(`${apiBaseUrl}/api/events/${eventId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

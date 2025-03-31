@@ -12,13 +12,14 @@ export default function EventDetails({ eventId }: EventDetailsProps) {
   const [event, setEvent] = useState<Meeting | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+
   useEffect(() => {
     const fetchEventDetails = async () => {
       try {
-        const response = await axios.get(`http://localhost:5000/api/events/${eventId}`, {
+        const response = await axios.get(`${apiBaseUrl}/api/events/${eventId}`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
+            'Authorization': `Bearer ${localStorage.getItem('token')}`          }
         });
         setEvent(response.data);
       } catch (error) {
