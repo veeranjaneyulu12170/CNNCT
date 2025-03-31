@@ -12,12 +12,75 @@ interface PendingTabProps {
 export default function PendingTab({ meetings, onAccept, onReject, onParticipantAction }: PendingTabProps) {
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [showParticipants, setShowParticipants] = useState(false);
+  const [participantStatuses, setParticipantStatuses] = useState<Record<string, Record<string, boolean>>>({});
+
+  // Handle clicking outside to close popup
+  const handleClickOutside = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (!target.closest('.participants-popup') && !target.closest('.participants-button')) {
+      setShowParticipants(false);
+      setSelectedMeeting(null);
+    }
+  };
+
+  // Handle Accept All action
+  const handleAcceptAll = async (meetingId: string) => {
+    try {
+      // Call the onAccept function
+      await onAccept(meetingId);
+      
+      // Update local state
+      setParticipantStatuses(prev => {
+        const updatedStatuses = { ...prev };
+        if (selectedMeeting?.emails) {
+          updatedStatuses[meetingId] = selectedMeeting.emails.reduce((acc, email) => ({
+            ...acc,
+            [email]: true
+          }), {});
+        }
+        return updatedStatuses;
+      });
+
+      // Close the popup
+      setShowParticipants(false);
+      setSelectedMeeting(null);
+    } catch (error) {
+      console.error('Error accepting all participants:', error);
+    }
+  };
+
+  // Handle participant status change locally
+  const handleParticipantStatusChange = async (meetingId: string, email: string, isChecked: boolean) => {
+    // Update local state first
+    setParticipantStatuses(prev => ({
+      ...prev,
+      [meetingId]: {
+        ...(prev[meetingId] || {}),
+        [email]: isChecked
+      }
+    }));
+
+    // Call the API
+    try {
+      await onParticipantAction(meetingId, email, isChecked ? 'Accept' : 'Reject');
+    } catch (error) {
+      // Revert local state if API call fails
+      setParticipantStatuses(prev => ({
+        ...prev,
+        [meetingId]: {
+          ...(prev[meetingId] || {}),
+          [email]: !isChecked
+        }
+      }));
+    }
+  };
 
   return (
-    <div>
+    <div onClick={handleClickOutside}>
       {meetings.map((meeting) => {
         const meetingDetails = meeting.meetingDetails || JSON.parse(meeting.description);
         const participantCount = meeting.emails?.length || 0;
+        const isSelected = selectedMeeting?._id === meeting._id;
         
         return (
           <div key={meeting._id} className="p-6 border-b last:border-b-0 relative hover:bg-gray-50">
@@ -25,28 +88,33 @@ export default function PendingTab({ meetings, onAccept, onReject, onParticipant
               <div className="flex gap-8">
                 <div className="flex flex-col min-w-[120px]">
                   <span className="text-[13px] text-blue-500">
-                    {formatTime(meetingDetails.time || '10:30')}
+                    {meetingDetails.time} - {meetingDetails.duration}
                   </span>
                   <span className="text-[13px] text-gray-500">
-                    {formatDate(meetingDetails.date || new Date().toISOString())}
+                    {meetingDetails.date}
                   </span>
                 </div>
                 <div className="flex flex-col">
                   <h3 className="text-[15px] font-medium text-gray-900">
-                    {meetingDetails.meetingType || 'Meeting'}
+                    {meeting.title || meetingDetails.eventTopic}
                   </h3>
                   <p className="text-[13px] text-gray-500">
-                    You and team {meetingDetails.teamNumber || '1'}
+                    {meetingDetails.meetingType}
                   </p>
                 </div>
               </div>
 
               <button
-                onClick={() => {
-                  setSelectedMeeting(meeting);
-                  setShowParticipants(!showParticipants || selectedMeeting?._id !== meeting._id);
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (isSelected) {
+                    setShowParticipants(!showParticipants);
+                  } else {
+                    setSelectedMeeting(meeting);
+                    setShowParticipants(true);
+                  }
                 }}
-                className="flex items-center gap-2"
+                className="participants-button flex items-center gap-2 hover:text-blue-500"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500">
                   <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -59,8 +127,11 @@ export default function PendingTab({ meetings, onAccept, onReject, onParticipant
             </div>
 
             {/* Participant List Popup */}
-            {showParticipants && selectedMeeting?._id === meeting._id && (
-              <div className="absolute right-6 top-16 bg-white rounded-lg shadow-lg border border-gray-200 w-[400px] z-10">
+            {showParticipants && isSelected && (
+              <div 
+                className="participants-popup absolute right-6 top-16 bg-white rounded-lg shadow-lg border border-gray-200 w-[400px] z-10"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <div className="p-4 border-b">
                   <div className="flex justify-between items-center">
                     <h3 className="text-[15px] font-medium">
@@ -68,16 +139,22 @@ export default function PendingTab({ meetings, onAccept, onReject, onParticipant
                     </h3>
                     <div className="flex gap-2">
                       <button 
-                        onClick={() => onReject(meeting._id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onReject(meeting._id);
+                        }}
                         className="px-4 py-1 text-sm rounded-full text-white bg-red-500 hover:bg-red-600"
                       >
-                        Reject
+                        Reject All
                       </button>
                       <button 
-                        onClick={() => onAccept(meeting._id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAcceptAll(meeting._id);
+                        }}
                         className="px-4 py-1 text-sm rounded-full text-white bg-green-500 hover:bg-green-600"
                       >
-                        Accept
+                        Accept All
                       </button>
                     </div>
                   </div>
@@ -88,6 +165,8 @@ export default function PendingTab({ meetings, onAccept, onReject, onParticipant
                       .split('.')
                       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
                       .join(' ');
+                    
+                    const isChecked = participantStatuses[meeting._id]?.[email] ?? false;
                     
                     return (
                       <div key={index} className="p-4 flex items-center justify-between border-b last:border-b-0">
@@ -101,10 +180,11 @@ export default function PendingTab({ meetings, onAccept, onReject, onParticipant
                         </div>
                         <input 
                           type="checkbox"
+                          checked={isChecked}
                           className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                           onChange={(e) => {
-                            const isChecked = e.target.checked;
-                            onParticipantAction(meeting._id, email, isChecked ? 'Accept' : 'Reject');
+                            e.stopPropagation();
+                            handleParticipantStatusChange(meeting._id, email, e.target.checked);
                           }}
                         />
                       </div>

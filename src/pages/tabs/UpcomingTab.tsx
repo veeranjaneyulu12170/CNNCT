@@ -1,6 +1,5 @@
 import React from 'react';
 import { Meeting } from '../../types';
-import { formatTime, formatDate } from '../../utils/dateUtils';
 
 interface UpcomingTabProps {
   meetings: Meeting[];
@@ -11,40 +10,49 @@ export default function UpcomingTab({ meetings }: UpcomingTabProps) {
     const [hours, minutes] = time.split(':').map(Number);
     const startHour = hours % 12 || 12;
     const endHour = (hours + 1) % 12 || 12;
-    return `${startHour}:${minutes.toString().padStart(2, '0')} ${hours >= 12 ? 'pm' : 'am'} - ${endHour}:${minutes.toString().padStart(2, '0')} ${(hours + 1) >= 12 ? 'pm' : 'am'}`;
+    return `${startHour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}${hours >= 12 ? 'pm' : 'am'} - ${endHour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}${(hours + 1) >= 12 ? 'pm' : 'am'}`;
   };
 
-  const formatDateSimple = (dateStr: string) => {
+  const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    return `${days[date.getDay()]}, ${date.getDate()} feb`;
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${days[date.getDay()]}, ${months[date.getMonth()]} ${date.getDate()}`;
   };
+
+  // Filter meetings to show only those with accepted participants
+  const upcomingMeetings = meetings.filter(meeting => 
+    meeting.participants?.some(p => p.status === 'Accepted')
+  );
 
   return (
     <div>
-      {meetings.map((meeting) => {
+      {upcomingMeetings.map((meeting) => {
         const meetingDetails = meeting.meetingDetails || JSON.parse(meeting.description);
-        const acceptedParticipants = meeting.participants?.filter(p => p.status === 'Accepted') || [];
+        // Count participants that are marked as Accepted
+        const acceptedParticipants = meeting.participants?.filter(p => 
+          p.status === 'Accepted'
+        ) || [];
         const participantCount = acceptedParticipants.length;
         
         return (
-          <div key={meeting._id} className="p-6 border-b last:border-b-0 relative">
+          <div key={meeting._id} className="p-6 border-b last:border-b-0 relative hover:bg-gray-50">
             <div className="flex justify-between items-center">
               <div className="flex gap-8">
                 <div className="flex flex-col min-w-[120px]">
                   <span className="text-[13px] text-blue-500">
-                    {formatTimeRange(meetingDetails.time)}
+                    {meetingDetails.time} - {meetingDetails.duration}
                   </span>
                   <span className="text-[13px] text-gray-500">
-                    {formatDateSimple(meetingDetails.date)}
+                    {meetingDetails.date}
                   </span>
                 </div>
                 <div className="flex flex-col">
                   <h3 className="text-[15px] font-medium text-gray-900">
-                    {meetingDetails.meetingType || 'Meeting-2'}
+                    {meeting.title || meetingDetails.eventTopic}
                   </h3>
                   <p className="text-[13px] text-gray-500">
-                    You and team {meetingDetails.teamNumber || '2'}
+                    {meetingDetails.meetingType}
                   </p>
                 </div>
               </div>
@@ -60,7 +68,7 @@ export default function UpcomingTab({ meetings }: UpcomingTabProps) {
                     <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                   </svg>
                   <span className="text-[13px] text-gray-600">
-                    {participantCount} people
+                    {participantCount} {participantCount === 1 ? 'person' : 'people'}
                   </span>
                 </div>
               </div>

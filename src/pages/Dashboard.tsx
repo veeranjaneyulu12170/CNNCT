@@ -123,11 +123,45 @@ export default function Dashboard() {
 
   const handleAccept = async (meetingId: string) => {
     try {
-      await api.put(`/events/${meetingId}`, { 
+      // Update the event status to Accepted
+      const response = await api.put(`/events/${meetingId}`, { 
         status: 'Accepted'
       });
-      toast.success('Meeting accepted successfully');
-      fetchMeetings();
+      
+      if (response.status === 200) {
+        // Update local state without fetching all meetings
+        setMeetings(prevMeetings => {
+          const updatedMeetings = { ...prevMeetings };
+          
+          Object.keys(updatedMeetings).forEach(tab => {
+            updatedMeetings[tab] = updatedMeetings[tab].map(meeting => 
+              meeting._id === meetingId 
+                ? { 
+                    ...meeting, 
+                    status: 'Accepted' as const,
+                    participants: (meeting.participants || []).map(p => ({
+                      ...p,
+                      status: 'Accepted' as const
+                    }))
+                  } 
+                : meeting
+            );
+          });
+          
+          // Move the meeting to the Upcoming tab if it's in Pending
+          if (updatedMeetings.Pending.some(m => m._id === meetingId)) {
+            const acceptedMeeting = updatedMeetings.Pending.find(m => m._id === meetingId);
+            if (acceptedMeeting) {
+              updatedMeetings.Upcoming.push(acceptedMeeting);
+              updatedMeetings.Pending = updatedMeetings.Pending.filter(m => m._id !== meetingId);
+            }
+          }
+          
+          return updatedMeetings;
+        });
+        
+        toast.success('All participants accepted successfully');
+      }
     } catch (error: any) {
       console.error('Error accepting meeting:', error);
       toast.error('Failed to accept meeting');
@@ -149,15 +183,59 @@ export default function Dashboard() {
 
   const handleParticipantAction = async (meetingId: string, email: string, action: 'Accept' | 'Reject') => {
     try {
-      await api.put(`/events/${meetingId}/participant`, { 
-        email, 
-        status: action
+      const newStatus = action === 'Accept' ? 'Accepted' as const : 'Rejected' as const;
+      
+      // Update the entire event with the participant's new status
+      const response = await api.put(`/events/${meetingId}`, { 
+        participantUpdate: {
+          email,
+          status: newStatus
+        }
       });
-      toast.success(`Participant ${action.toLowerCase()}ed successfully`);
-      fetchMeetings();
+      
+      // Update local state without fetching all meetings
+      setMeetings(prevMeetings => {
+        const updatedMeetings = { ...prevMeetings };
+        
+        // Find the meeting in all tabs and update the participant's status
+        Object.keys(updatedMeetings).forEach(tab => {
+          updatedMeetings[tab] = updatedMeetings[tab].map(meeting => {
+            if (meeting._id === meetingId) {
+              // Ensure participants array exists
+              const currentParticipants = meeting.participants || [];
+              
+              // Update participant status
+              const updatedParticipants = currentParticipants.map(participant => {
+                const participantEmail = participant.user?.email || participant.email;
+                if (participantEmail === email) {
+                  return {
+                    ...participant,
+                    status: newStatus
+                  };
+                }
+                return participant;
+              });
+              
+              // Return updated meeting with type assertion
+              return {
+                ...meeting,
+                participants: updatedParticipants,
+                status: newStatus === 'Accepted' ? 'Accepted' as const : 
+                       updatedParticipants.every(p => p.status === 'Rejected') ? 'Rejected' as const : 
+                       meeting.status
+              } as Meeting;
+            }
+            return meeting;
+          });
+        });
+        
+        return updatedMeetings;
+      });
+
+      toast.success(`Participant ${action === 'Accept' ? 'accepted' : 'rejected'} successfully`);
     } catch (error: any) {
-      console.error(`Error ${action.toLowerCase()}ing participant:`, error);
-      toast.error(`Failed to ${action.toLowerCase()} participant`);
+      console.error(`Error ${action === 'Accept' ? 'accepting' : 'rejecting'} participant:`, error);
+      toast.error(`Failed to ${action === 'Accept' ? 'accept' : 'reject'} participant`);
     }
   };
 

@@ -1,8 +1,13 @@
 export interface Participant {
-  id: string;
-  name: string;
-  email: string;
-  avatar: string;
+  id?: string;
+  name?: string;
+  email?: string;
+  avatar?: string;
+  user?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
   status?: 'Accepted' | 'Rejected' | 'Pending';
   selected?: boolean;
 }
@@ -14,7 +19,19 @@ export interface Meeting {
   title: string;
   description: string;
   status: 'Accepted' | 'Rejected' | 'Pending';
-  participants: Participant[];
+  participants: Array<{
+    id?: string;
+    name?: string;
+    email?: string;
+    avatar?: string;
+    user?: {
+      _id: string;
+      name: string;
+      email: string;
+    };
+    status?: 'Accepted' | 'Rejected' | 'Pending';
+    selected?: boolean;
+  }>;
   emails: string[];
   meetingDetails?: {
     date: string;

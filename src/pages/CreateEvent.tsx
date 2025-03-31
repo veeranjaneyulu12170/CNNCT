@@ -97,22 +97,36 @@ export default function CreateEvent() {
       const date = new Date(firstFormData.date);
       const formattedDate = date.toLocaleDateString('en-US', {
         weekday: 'long',
-        month: 'long',
+        month: 'short',
         day: 'numeric'
       });
 
+      // Format time to match the expected format (e.g., "02:30pm")
+      const time = firstFormData.time;
+      const period = firstFormData.period.toLowerCase();
+      const formattedTime = `${time}${period}`;
+
       const eventData = {
         title: firstFormData.eventTopic,
-        description: JSON.stringify(firstFormData),
+        description: JSON.stringify({
+          ...firstFormData,
+          date: formattedDate,
+          time: formattedTime
+        }),
         link: secondFormData.link,
         emails: secondFormData.emails,
         status: 'Accepted',
+        participants: secondFormData.emails.map(email => ({
+          email,
+          status: 'Accepted'
+        })),
         meetingDetails: {
           date: formattedDate,
-          time: `${firstFormData.time} ${firstFormData.period}`,
+          time: formattedTime,
           duration: firstFormData.duration,
           meetingType: firstFormData.meetingType || 'One-on-One',
           hostName: firstFormData.hostName,
+          eventTopic: firstFormData.eventTopic,
           description: firstFormData.description,
           password: firstFormData.password
         }
@@ -128,7 +142,7 @@ export default function CreateEvent() {
       if (response.status === 201) {
         setShowSuccessNotification(true);
         setTimeout(() => {
-    navigate('/event-types');
+          navigate('/event-types');
         }, 1500);
       }
     } catch (error) {

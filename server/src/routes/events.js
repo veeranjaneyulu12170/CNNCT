@@ -61,15 +61,55 @@ router.get('/:id', protect, async (req, res) => {
 // Update an event
 router.put('/:id', protect, async (req, res) => {
   try {
-    const event = await Event.findOneAndUpdate(
-      { _id: req.params.id, createdBy: req.user._id },
-      req.body,
-      { new: true, runValidators: true }
-    );
+    const event = await Event.findById(req.params.id);
     
     if (!event) {
       return res.status(404).json({ message: 'Event not found' });
     }
+
+    // If status is being updated to 'Accepted', update all participants
+    if (req.body.status === 'Accepted') {
+      event.status = 'Accepted';
+      
+      // Initialize participants array if it doesn't exist
+      if (!event.participants) {
+        event.participants = event.emails?.map(email => ({
+          email,
+          status: 'Accepted'
+        })) || [];
+      } else {
+        event.participants = event.participants.map(participant => ({
+          ...participant,
+          status: 'Accepted'
+        }));
+      }
+    } else if (req.body.participantUpdate) {
+      // Handle single participant update
+      const { email, status } = req.body.participantUpdate;
+      const participant = event.participants.find(
+        p => p.email === email || p.user?.email === email
+      );
+
+      if (participant) {
+        participant.status = status;
+      } else {
+        event.participants.push({ email, status });
+      }
+
+      // Update event status if needed
+      if (status === 'Accepted') {
+        event.status = 'Accepted';
+      } else if (status === 'Rejected' && 
+                 event.participants.every(p => p.status === 'Rejected')) {
+        event.status = 'Rejected';
+      }
+    } else {
+      // Regular update
+      Object.assign(event, req.body);
+    }
+
+    await event.save();
+    await event.populate('participants.user', 'name email');
     
     res.json(event);
   } catch (error) {
@@ -137,24 +177,41 @@ router.put('/:id/participants/:userId', protect, async (req, res) => {
       return res.status(404).json({ message: 'Event not found' });
     }
 
-    // Check if user is creator
-    if (event.creator.toString() !== req.user._id.toString()) {
-      return res.status(401).json({ message: 'Not authorized to update participant status' });
-    }
-
+    // Find participant by either userId or email
     const participant = event.participants.find(
-      p => p.user.toString() === req.params.userId
+      p => p.user?.toString() === req.params.userId || p.email === req.params.userId
     );
 
     if (!participant) {
-      return res.status(404).json({ message: 'Participant not found' });
+      // If participant not found, create a new one
+      event.participants.push({
+        email: req.params.userId,
+        status: req.body.status
+      });
+    } else {
+      // Update existing participant status
+      participant.status = req.body.status;
+    }
+    
+    // If participant is accepted, update event status to Accepted
+    if (req.body.status === 'Accepted') {
+      event.status = 'Accepted';
+    }
+    
+    // If all participants are rejected, update event status to Rejected
+    if (req.body.status === 'Rejected' && 
+        event.participants.every(p => p.status === 'Rejected')) {
+      event.status = 'Rejected';
     }
 
-    participant.status = req.body.status;
     await event.save();
+
+    // Populate user details before sending response
+    await event.populate('participants.user', 'name email');
 
     res.json(event);
   } catch (error) {
+    console.error('Error updating participant status:', error);
     res.status(400).json({ message: error.message });
   }
 });
