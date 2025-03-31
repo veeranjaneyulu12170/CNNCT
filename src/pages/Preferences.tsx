@@ -71,8 +71,9 @@ const Preferences: React.FC = () => {
       }
       
       // Update user preferences in the backend
+      const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
       await axios.put(
-        'http://localhost:5000/api/users/profile',
+        `${apiBaseUrl}/api/users/profile`,
         {
           username: preferencesData.username,
           preferences: {
