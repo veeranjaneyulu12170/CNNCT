@@ -100,7 +100,7 @@ const Signup: React.FC = () => {
       });
 
       // Send signup request to the backend
-      const response = await axios.post('http://localhost:5000/api/auth/register', userData);
+      const response = await axios.post(import.meta.env.VITE_API_URL || 'http://localhost:5001/api/auth/register', userData);
       
       console.log('Registration response received:', {
         success: true,
