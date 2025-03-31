@@ -62,7 +62,8 @@ export default function Layout() {
       
       console.log('Fetching user profile from API...');
       // Fetch user profile using the token
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/users/profile`, {
+      const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+      const response = await fetch(`${apiBaseUrl}/api/users/profile`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

@@ -127,9 +127,11 @@ export default function Settings() {
       }
 
       console.log('Fetching profile with token:', token);
+      
+      const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
       // First get the registration data
-      const registrationResponse = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/auth/user/${userId}`, {
+      const registrationResponse = await axios.get(`${apiBaseUrl}/api/auth/user/${userId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -147,7 +149,7 @@ export default function Settings() {
       }
 
       // Then get any additional profile data
-      const profileResponse = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/users/profile`, {
+      const profileResponse = await axios.get(`${apiBaseUrl}/api/users/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -207,8 +209,10 @@ export default function Settings() {
         username: profile.username
       });
 
+      const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+      
       // Update user data
-      const response = await axios.put(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/users/profile`, {
+      const response = await axios.put(`${apiBaseUrl}/api/users/profile`, {
         name: `${profile.firstName} ${profile.lastName}`.trim(),
         email: profile.email,
         username: profile.username,
@@ -272,7 +276,8 @@ export default function Settings() {
         return;
       }
 
-      await axios.put(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/user/password`, {
+      const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+      await axios.put(`${apiBaseUrl}/api/user/password`, {
         currentPassword: passwords.currentPassword,
         newPassword: passwords.newPassword
       }, {

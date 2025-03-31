@@ -70,7 +70,8 @@ const Login: React.FC = () => {
       });
       
       // Send login request to the backend
-      const response = await axios.post(import.meta.env.VITE_API_URL || 'http://localhost:5001/api/auth/login', credentials);
+      const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+      const response = await axios.post(`${apiBaseUrl}/api/auth/login`, credentials);
       
       console.log('Login response received:', {
         success: true,
