@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "nodemon src/index.js"
+    "dev": "nodemon src/index.js",
+    "build": "echo \"No build required for server - using plain JavaScript\""
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
