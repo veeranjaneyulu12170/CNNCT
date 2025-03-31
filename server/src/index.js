@@ -7,6 +7,7 @@ import eventRoutes from './routes/events.js';
 import availabilityRoutes from './routes/availability.js';
 import userRoutes from './routes/users.js';
 
+// Load environment variables
 dotenv.config();
 
 const app = express();
@@ -26,7 +27,11 @@ app.use('/api/availability', availabilityRoutes);
 app.use('/api/users', userRoutes);
 
 // MongoDB Connection
-mongoose.connect(process.env.MONGODB_URI)
+console.log('Connecting to MongoDB at:', process.env.MONGODB_URI?.replace(/:[^:]*@/, ':****@'));
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
   .then(() => console.log('Connected to MongoDB'))
   .catch((err) => console.error('MongoDB connection error:', err));
 
