@@ -15,10 +15,11 @@ const app = express();
 // CORS configuration based on environment
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://cnnct-scheduler.onrender.com', 'https://p2-ivory.vercel.app'] // Update with your actual frontend URLs
+    ? ['https://cnnct-1.onrender.com', 'https://cnnct-scheduler.onrender.com', 'https://p2-ivory.vercel.app'] // Update with your actual frontend URLs
     : '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 };
 
 // Middleware
