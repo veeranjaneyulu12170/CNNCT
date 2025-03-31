@@ -129,7 +129,7 @@ export default function Layout() {
             <img src="/logo.svg" alt="CNNCT" className="h-8" />
           </div>
           
-          <nav className="space-y-1">
+          <nav className="space-y-6 image.png">
             {navigation.map((item) => {
               const Icon = item.icon;
               return (

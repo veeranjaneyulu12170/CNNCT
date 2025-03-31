@@ -1,15 +1,16 @@
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
 import Layout from './components/Layout';
 import LoadingSpinner from './components/LoadingSpinner';
+import Availability from './pages/Availability';
+import Settings from './pages/Settings';
 
 const Landing = lazy(() => import('./pages/Landing'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Auth = lazy(() => import('./pages/Auth'));
 const EventTypes = lazy(() => import('./pages/EventTypes'));
 const CreateEvent = lazy(() => import('./pages/CreateEvent'));
-const Availability = lazy(() => import('./pages/Availability'));
-const Settings = lazy(() => import('./pages/Settings'));
 const Signup = lazy(() => import('./pages/Signup'));
 const Login = lazy(() => import('./pages/Login'));
 const Preferences = lazy(() => import('./pages/Preferences'));

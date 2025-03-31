@@ -69,42 +69,71 @@ const Signup: React.FC = () => {
       setError('You must agree to the terms and conditions');
       return;
     }
+
+    if (signupData.password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return;
+    }
     
     try {
       setIsLoading(true);
       setError(null);
       
+      // Create username from email, ensuring it's at least 3 characters
+      let username = signupData.email.split('@')[0];
+      if (username.length < 3) {
+        username = username.padEnd(3, '0'); // Pad with zeros if too short
+      }
+      
       // Create the request payload for the API
       const userData = {
-        name: `${signupData.firstName} ${signupData.lastName}`,
+        username: username,
         email: signupData.email,
         password: signupData.password,
-        username: signupData.email.split('@')[0], // Creating a default username from email
+        name: `${signupData.firstName} ${signupData.lastName}`,
       };
       
+      console.log('Sending registration request with data:', {
+        username: userData.username,
+        email: userData.email,
+        name: userData.name
+      });
+
       // Send signup request to the backend
       const response = await axios.post('http://localhost:5000/api/auth/register', userData);
       
-      // Store token in localStorage
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify({
-          id: response.data._id,
-          name: response.data.name,
-          email: response.data.email,
-          username: response.data.username
-        }));
-        
-        // Navigate to preferences page after successful signup
-        navigate('/preferences');
+      console.log('Registration response received:', {
+        success: true,
+        hasToken: !!response.data.token,
+        hasUserId: !!response.data._id
+      });
+
+      // Verify we have the required data
+      if (!response.data.token || !response.data._id) {
+        throw new Error('Registration response missing required data');
       }
+
+      // Store token and user data in localStorage
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('userId', response.data._id);
+      localStorage.setItem('user', JSON.stringify({
+        id: response.data._id,
+        name: response.data.name,
+        email: response.data.email,
+        username: response.data.username
+      }));
+
+      console.log('User data stored successfully');
+      
+      // Navigate to preferences page after successful signup
+      navigate('/preferences');
     } catch (err) {
+      console.error('Registration error:', err);
       if (axios.isAxiosError(err) && err.response) {
         setError(err.response.data.message || 'Registration failed');
       } else {
         setError('An unexpected error occurred');
       }
-      console.error('Signup error:', err);
     } finally {
       setIsLoading(false);
     }

@@ -172,13 +172,13 @@ export default function EventTypes() {
           No event types created yet
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3 ">
           {events.map((event) => {
             console.log('Rendering event:', event); // Add this log
             return (
               <div 
                 key={event._id} 
-                className="bg-white border rounded-3xl shadow-sm overflow-hidden h-[230px]"
+                className="bg-white border rounded-3xl shadow-sm overflow-hidden h-[200px] scale-90"
               >
                 <div className="bg-blue-500 h-6 w-full"></div>
                 <div className="p-4">
@@ -207,9 +207,9 @@ export default function EventTypes() {
                       </>
                     );
                   })()}
-                  <div className="flex items-center justify-end space-x-4 border-t border-gray-300 p-2">
+                  <div className="flex items-center justify-end space-x-1 border-t border-gray-300  mb-2 ">
                     <label className="flex cursor-pointer select-none items-center">
-                      <div className="relative mt-2">
+                      <div className="relative  scale-50  ">
                         <input 
                           type="checkbox" 
                           checked={event.isAvailable}
@@ -222,17 +222,17 @@ export default function EventTypes() {
                     </label>
                     <button 
                       onClick={() => handleCopyEvent(event)}
-                      className="flex items-center justify-center h-8 w-8 text-gray-500 hover:text-gray-700"
+                      className="mb-2 flex items-center justify-center h-8 w-8 text-gray-500 hover:text-gray-700"
                       title="Copy Event"
                     >
-                      <Copy size={24} />
+                      <Copy size={16} />
                     </button>
                     <button 
                       onClick={() => handleDeleteEvent(event._id)}
-                      className="flex items-center justify-center h-8 w-8 text-gray-500 hover:text-gray-700"
+                      className="mb-2 flex items-center justify-center h-8 w-8 text-gray-500 hover:text-gray-700"
                       title="Delete Event"
                     >
-                      <Trash2 size={24} />
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 </div>

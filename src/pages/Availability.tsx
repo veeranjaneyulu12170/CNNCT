@@ -60,32 +60,7 @@ export default function Availability() {
   const [eventType, setEventType] = useState<string>('one-on-one');
   const [timeZone, setTimeZone] = useState<string>('EST GMT-5');
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [events, setEvents] = useState<Event[]>([
-    {
-      title: 'Meeting-2',
-      startTime: '10:00',
-      endTime: '11:00',
-      date: '2024-01-25',
-      color: '#E5E7EB',
-      meetingType: 'one-on-one' as MeetingType
-    },
-    {
-      title: 'Meeting',
-      startTime: '09:00',
-      endTime: '12:00',
-      date: '2024-01-28',
-      color: '#93C5FD',
-      meetingType: 'group' as MeetingType
-    },
-    {
-      title: 'Meeting-2',
-      startTime: '14:00',
-      endTime: '16:00',
-      date: '2024-01-28',
-      color: '#DDD6FE',
-      meetingType: 'workshop' as MeetingType
-    }
-  ]);
+  const [events, setEvents] = useState<Event[]>([]);
   
   const [weeklySchedule, setWeeklySchedule] = useState<WeeklySchedule>({
     Sun: { isAvailable: false, timeSlots: [] },
@@ -103,98 +78,56 @@ export default function Availability() {
     position: { x: 0, y: 0 }
   });
 
-  // Update the useEffect for fetching events
+  // Add this new useEffect to fetch availability data
   useEffect(() => {
-    const fetchEvents = async () => {
+    const fetchAvailability = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('http://localhost:5000/api/events', {
+        if (!token) {
+          console.warn('No token found for fetching availability');
+          return;
+        }
+
+        const response = await axios.get('http://localhost:5000/api/availability', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
 
-        // Transform the events data to match our Event interface
-        const transformedEvents = response.data.map((event: any) => {
-          try {
-            // Check if event exists
-            if (!event) {
-              console.warn('Invalid event data:', event);
-              return null;
-            }
+        console.log('Fetched availability data:', response.data);
 
-            // Parse the description to get meeting details
-            let meetingDetails;
-            try {
-              meetingDetails = JSON.parse(event.description);
-            } catch (e) {
-              console.warn('Invalid description format:', event.description);
-              return null;
-            }
+        // Transform the availability data into events
+        const transformedEvents: Event[] = [];
+        const today = new Date();
+        
+        response.data.forEach((availability: any) => {
+          console.log('Processing availability for day:', availability.dayOfWeek);
+          if (availability.isAvailable && availability.timeSlots.length > 0) {
+            availability.timeSlots.forEach((slot: any) => {
+              // Skip if startTime and endTime are both '00:00' (unavailable day)
+              if (slot.startTime === '00:00' && slot.endTime === '00:00') return;
 
-            // Parse the date from meetingDetails
-            const dateStr = meetingDetails.date;
-            if (!dateStr) {
-              console.warn('Missing date in event:', event);
-              return null;
-            }
+              // Calculate the date for this event
+              const eventDate = new Date(today);
+              const dayDiff = availability.dayOfWeek - today.getDay();
+              eventDate.setDate(today.getDate() + dayDiff);
 
-            // Parse date components
-            const [, monthDay] = dateStr.split(', ');
-            if (!monthDay) {
-              console.warn('Invalid date format:', dateStr);
-              return null;
-            }
-
-            const [monthName, day] = monthDay.split(' ');
-            const year = new Date().getFullYear();
-            const date = new Date(`${monthName} ${day}, ${year}`);
-
-            // Parse time
-            const timeStr = meetingDetails.time;
-            if (!timeStr) {
-              console.warn('Missing time in event:', event);
-              return null;
-            }
-
-            const [time, period] = timeStr.split(' ');
-            const [hours, minutes] = time.split(':').map(Number);
-
-            // Convert to 24-hour format
-            let startHour = hours;
-            if (period === 'PM' && hours !== 12) startHour += 12;
-            if (period === 'AM' && hours === 12) startHour = 0;
-
-            // Calculate end time based on duration
-            const durationStr = meetingDetails.duration;
-            if (!durationStr) {
-              console.warn('Missing duration in event:', event);
-              return null;
-            }
-
-            const durationHours = parseInt(durationStr.split(' ')[0]);
-            const endHour = startHour + durationHours;
-
-            // Format the date as YYYY-MM-DD
-            const formattedDate = date.toISOString().split('T')[0];
-
-            // Determine event color based on meeting type
+              // Create event object with proper color based on meeting type
             let color = '#E5E7EB'; // default color
-            const meetingType = meetingDetails.meetingType?.toLowerCase() || 'one-on-one';
-            switch (meetingType) {
+              switch (eventType) {
               case 'one-on-one':
                 color = '#E5E7EB';
                 break;
-              case 'group meeting':
+                case 'group':
                 color = '#93C5FD';
                 break;
-              case 'interview':
+                case 'workshop':
                 color = '#DDD6FE';
                 break;
-              case 'presentation':
+                case 'interview':
                 color = '#FDE68A';
                 break;
-              case 'workshop':
+                case 'presentation':
                 color = '#86EFAC';
                 break;
               case 'conference':
@@ -202,41 +135,32 @@ export default function Availability() {
                 break;
             }
 
-            return {
-              id: event._id,
-              title: event.title || 'Untitled Event',
-              startTime: `${startHour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`,
-              endTime: `${endHour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`,
-              date: formattedDate,
+              const event: Event = {
+                title: `${eventType} Meeting`,
+                startTime: slot.startTime,
+                endTime: slot.endTime,
+                date: eventDate.toISOString().split('T')[0],
               color: color,
-              meetingType: meetingType.replace(/\s+/g, '-') as MeetingType,
-              description: meetingDetails.description || '',
-              hostName: meetingDetails.hostName || '',
-              password: meetingDetails.password || '',
-              attendees: event.emails || [],
-              location: meetingDetails.location || '',
-              duration: durationStr,
-              period: period as 'AM' | 'PM'
-            };
-          } catch (error) {
-            console.error('Error transforming event:', error);
-            return null;
-          }
-        }).filter(Boolean); // Remove any null events
+                meetingType: eventType as MeetingType
+              };
 
-        console.log('Transformed events:', transformedEvents);
+              console.log('Created event:', event);
+              transformedEvents.push(event);
+            });
+          }
+        });
+
+        console.log('Final transformed events:', transformedEvents);
         setEvents(transformedEvents);
       } catch (error) {
-        console.error('Error fetching events:', error);
-        // Set empty array on error to prevent undefined errors
-        setEvents([]);
+        console.error('Error fetching availability:', error);
       }
     };
 
-    fetchEvents();
-  }, []);
+    fetchAvailability();
+  }, [eventType]); // Re-fetch when event type changes
 
-  // Update the saveAvailability function to handle errors better
+  // Update the existing useEffect for saving availability
   useEffect(() => {
     const saveAvailability = async () => {
       try {
@@ -246,33 +170,102 @@ export default function Availability() {
           return;
         }
 
-        // Only save if there are actual changes
-        if (!weeklySchedule || !eventType || !timeZone) {
-          console.warn('Missing required data for saving availability');
-          return;
-        }
+        // Transform the weekly schedule data to match server format
+        const availabilityData = Object.entries(weeklySchedule).map(([day, schedule]) => {
+          const dayMap: { [key: string]: number } = {
+            'Sun': 0,
+            'Mon': 1,
+            'Tue': 2,
+            'Wed': 3,
+            'Thu': 4,
+            'Fri': 5,
+            'Sat': 6
+          };
 
-        const response = await axios.post('http://localhost:5000/api/availability', {
-          weeklySchedule,
-          eventType,
-          timeZone
-        }, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+          // For unavailable days, send a default time slot
+          const timeSlots = !schedule.isAvailable 
+            ? [{ startTime: '00:00', endTime: '00:00' }]
+            : schedule.timeSlots
+            .filter(slot => slot.startTime && slot.endTime && slot.startTime !== '' && slot.endTime !== '')
+            .map(slot => ({
+              startTime: slot.startTime,
+              endTime: slot.endTime
+            }));
+
+            return {
+              dayOfWeek: dayMap[day],
+              isAvailable: schedule.isAvailable,
+            timeSlots: timeSlots,
+              eventType: eventType,
+              timezone: timeZone,
+              userId: localStorage.getItem('userId')
+            };
         });
 
-        if (response.status !== 200) {
-          console.warn('Unexpected response status:', response.status);
+        console.log('Saving availability data:', availabilityData);
+
+        // Send each day's availability separately
+        for (const dayAvailability of availabilityData) {
+          const response = await axios.post('http://localhost:5000/api/availability', dayAvailability, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (response.status === 200) {
+            console.log('Availability saved successfully for day:', dayAvailability.dayOfWeek);
+            // After saving, fetch the updated availability
+            const fetchResponse = await axios.get('http://localhost:5000/api/availability', {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            });
+            
+            // Update events based on the fetched data
+            const transformedEvents: Event[] = [];
+            const today = new Date();
+            
+            fetchResponse.data.forEach((availability: any) => {
+              if (availability.isAvailable && availability.timeSlots.length > 0) {
+                availability.timeSlots.forEach((slot: any) => {
+                  if (slot.startTime === '00:00' && slot.endTime === '00:00') return;
+
+                  const eventDate = new Date(today);
+                  const dayDiff = availability.dayOfWeek - today.getDay();
+                  eventDate.setDate(today.getDate() + dayDiff);
+
+                  const event: Event = {
+                    title: `${eventType} Meeting`,
+                    startTime: slot.startTime,
+                    endTime: slot.endTime,
+                    date: eventDate.toISOString().split('T')[0],
+                    color: '#E5E7EB',
+                    meetingType: eventType as MeetingType
+                  };
+
+                  transformedEvents.push(event);
+                });
+              }
+            });
+
+            console.log('Updated events after saving:', transformedEvents);
+            setEvents(transformedEvents);
+          }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error saving availability:', error);
-        // Don't throw the error, just log it
+        if (error.response) {
+          console.error('Error response:', error.response.data);
+          console.error('Error status:', error.response.status);
+          console.error('Request payload:', error.config?.data);
+        }
       }
     };
 
-    saveAvailability();
+    if (Object.keys(weeklySchedule).length > 0) {
+      saveAvailability();
+    }
   }, [weeklySchedule, eventType, timeZone]);
 
   // Add these helper functions
@@ -316,7 +309,53 @@ export default function Availability() {
       color: '#E5E7EB',
       meetingType: eventType as MeetingType
     };
-    setEvents([...events, newEvent]);
+    console.log('Adding new event:', newEvent);
+    setEvents(prevEvents => [...prevEvents, newEvent]);
+  };
+
+  // Add new function to handle event creation with specific date and time
+  const createEvent = (date: string, startTime: string, duration: string, meetingType: string) => {
+    const [hours, minutes] = startTime.split(':').map(Number);
+    const durationHours = parseInt(duration.split(' ')[0]);
+    const endHours = hours + durationHours;
+    const formattedEndTime = `${endHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+
+    // Get color based on meeting type
+    let color;
+    switch (meetingType) {
+      case 'one-on-one':
+        color = '#DBEAFE'; // blue-100
+        break;
+      case 'group':
+        color = '#F3E8FF'; // purple-100
+        break;
+      case 'workshop':
+        color = '#DCFCE7'; // green-100
+        break;
+      case 'interview':
+        color = '#FEF9C3'; // yellow-100
+        break;
+      case 'presentation':
+        color = '#FEE2E2'; // red-100
+        break;
+      case 'conference':
+        color = '#E0E7FF'; // indigo-100
+        break;
+      default:
+        color = '#F3F4F6'; // gray-100
+    }
+
+    const event: Event = {
+      title: `${meetingType} Meeting`,
+      startTime: startTime,
+      endTime: formattedEndTime,
+      date: date,
+      color: color,
+      meetingType: meetingType as MeetingType
+    };
+
+    console.log('Creating new event:', event);
+    setEvents(prevEvents => [...prevEvents, event]);
   };
 
   // Time zone change handler
@@ -448,13 +487,22 @@ export default function Availability() {
     setDatePopup(prev => ({ ...prev, isOpen: false }));
   };
 
+  // Add function to set specific date
+  const setSpecificDate = (year: number, month: number, day: number) => {
+    const newDate = new Date(year, month, day);
+    console.log('Setting specific date:', newDate.toISOString());
+    setCurrentDate(newDate);
+  };
+
+  // Update the date popup handlers
   const handleDateSelection = (value: string | number) => {
     const newDate = new Date(currentDate);
     if (datePopup.type === 'month') {
       newDate.setMonth(parseInt(value as string));
-    } else {
+    } else if (datePopup.type === 'year') {
       newDate.setFullYear(parseInt(value as string));
     }
+    console.log('Selected new date:', newDate.toISOString());
     setCurrentDate(newDate);
     closeDatePopup();
   };
@@ -596,18 +644,13 @@ export default function Availability() {
     return statusStyle;
   };
 
-  const renderCalendarView = () => {
-    // Filter events based on search query and event type
-    const filteredEvents = events.filter(event => 
-      event.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
-      (!eventType || event.meetingType === eventType)
-    );
-
-    // Get current week's dates
+  // Update the getWeekDates function
     const getWeekDates = () => {
       const dates = [];
       const start = new Date(currentDate);
+    // Adjust to start of week (Sunday)
       start.setDate(start.getDate() - start.getDay());
+    console.log('Week start date:', start.toISOString());
 
       for (let i = 0; i < 7; i++) {
         const date = new Date(start);
@@ -616,13 +659,78 @@ export default function Availability() {
           day: date.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
           date: date.getDate().toString(),
           isWeekend: date.getDay() === 0 || date.getDay() === 6,
-          fullDate: date.toISOString().split('T')[0]
+        fullDate: date.toISOString().split('T')[0],
+        month: date.getMonth(),
+        year: date.getFullYear()
         });
       }
       return dates;
     };
 
+  // Add useEffect to set initial date to March 31st, 2025
+  useEffect(() => {
+    // Set to March 31st, 2025
+    setSpecificDate(2025, 2, 31); // Note: month is 0-based, so 2 = March
+  }, []); // Run once on component mount
+
+  const renderCalendarView = () => {
+    // Filter events based on search query and event type
+    const filteredEvents = events.filter(event => 
+      event.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
+      (!eventType || event.meetingType === eventType)
+    );
+
+    console.log('Filtered events for calendar view:', filteredEvents);
+
     const weekDays = getWeekDates();
+    console.log('Current week days:', weekDays);
+
+    // Navigation functions
+    const handlePreviousWeek = () => {
+      const newDate = new Date(currentDate);
+      newDate.setDate(newDate.getDate() - 7);
+      console.log('Moving to previous week:', newDate.toISOString());
+      setCurrentDate(newDate);
+    };
+
+    const handleNextWeek = () => {
+      const newDate = new Date(currentDate);
+      newDate.setDate(newDate.getDate() + 7);
+      console.log('Moving to next week:', newDate.toISOString());
+      setCurrentDate(newDate);
+    };
+
+    const handleToday = () => {
+      const today = new Date();
+      console.log('Moving to today:', today.toISOString());
+      setCurrentDate(today);
+    };
+
+    // Update the getEventsForSlot function to properly handle event filtering
+    const getEventsForSlot = (day: string, hour: string) => {
+      console.log('Getting events for slot:', day, hour);
+      console.log('Current events:', events);
+      
+        const slotDate = weekDays.find(d => d.day === day)?.fullDate;
+      console.log('Slot date:', slotDate);
+      
+      const filteredEvents = events.filter(event => {
+        const eventStartHour = parseInt(event.startTime.split(':')[0]);
+        const eventEndHour = parseInt(event.endTime.split(':')[0]);
+        const slotHour = parseInt(hour);
+
+        const matches = event.date === slotDate &&
+          slotHour >= eventStartHour &&
+          slotHour < eventEndHour;
+
+        console.log('Event:', event.title, 'matches:', matches, 'date:', event.date, 'slotDate:', slotDate);
+        return matches;
+      });
+
+      console.log('Filtered events for slot:', filteredEvents);
+      return filteredEvents;
+    };
+
     const timeSlots = Array.from({ length: 8 }, (_, i) => {
       const hour = i + 9;
       return {
@@ -630,40 +738,6 @@ export default function Availability() {
         value: hour
       };
     });
-
-    // Navigation functions
-    const handlePreviousWeek = () => {
-      const newDate = new Date(currentDate);
-      newDate.setDate(newDate.getDate() - 7);
-      setCurrentDate(newDate);
-    };
-
-    const handleNextWeek = () => {
-      const newDate = new Date(currentDate);
-      newDate.setDate(newDate.getDate() + 7);
-      setCurrentDate(newDate);
-    };
-
-    const handleToday = () => {
-      setCurrentDate(new Date());
-    };
-
-    // Update the getEventsForSlot function
-    const getEventsForSlot = (day: string, hour: string) => {
-      return filteredEvents.filter(event => {
-        const eventDate = new Date(event.date);
-        const slotDate = weekDays.find(d => d.day === day)?.fullDate;
-        const eventStartHour = parseInt(event.startTime.split(':')[0]);
-        const eventEndHour = parseInt(event.endTime.split(':')[0]);
-        const slotHour = parseInt(hour);
-
-        return (
-          eventDate.toISOString().split('T')[0] === slotDate &&
-          slotHour >= eventStartHour &&
-          slotHour < eventEndHour
-        );
-      });
-    };
 
     return (
       <div className="min-h-screen bg-white p-6 rounded-2xl">
@@ -829,26 +903,52 @@ export default function Availability() {
                       }`}
                     >
                       {getEventsForSlot(day, value.toString()).map((event, index) => {
-                        const duration = parseInt(event.endTime) - parseInt(event.startTime);
+                        const duration = parseInt(event.endTime.split(':')[0]) - parseInt(event.startTime.split(':')[0]);
                         const startMinutes = parseInt(event.startTime.split(':')[1]) || 0;
+                        
+                        // Get color based on meeting type
+                        let bgColor;
+                        switch (event.meetingType) {
+                          case 'one-on-one':
+                            bgColor = 'bg-blue-100';
+                            break;
+                          case 'group':
+                            bgColor = 'bg-purple-100';
+                            break;
+                          case 'workshop':
+                            bgColor = 'bg-green-100';
+                            break;
+                          case 'interview':
+                            bgColor = 'bg-yellow-100';
+                            break;
+                          case 'presentation':
+                            bgColor = 'bg-red-100';
+                            break;
+                          case 'conference':
+                            bgColor = 'bg-indigo-100';
+                            break;
+                          default:
+                            bgColor = 'bg-gray-100';
+                        }
 
                         return (
                           <div
                             key={index}
-                            className="absolute inset-x-0 hover:opacity-90 transition-opacity cursor-pointer mx-[1px] overflow-hidden rounded-sm"
+                            className={`absolute inset-x-0 ${bgColor} hover:opacity-90 transition-opacity cursor-pointer mx-[1px] overflow-hidden rounded-sm`}
                             style={{ 
                               height: `${duration * 60}px`,
                               top: `${startMinutes}px`,
-                              zIndex: 10,
-                              backgroundColor: event.color
+                              zIndex: 10
                             }}
                           >
                             <div className="p-2">
-                              <div className="flex gap-1 text-xs font-medium text-white">
-                                <span>{formatTime(event.startTime)}</span>
-                              </div>
-                              <div className="text-xs mt-1 font-medium truncate text-white">
+                              <div className="flex flex-col">
+                                <span className="text-xs font-medium">
+                                  {formatTime(event.startTime)}
+                                </span>
+                                <span className="text-xs font-medium mt-1">
                                 {event.title}
+                                </span>
                               </div>
                             </div>
                           </div>

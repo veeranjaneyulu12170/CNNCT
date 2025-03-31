@@ -29,6 +29,11 @@ const userSchema = new mongoose.Schema({
     required: [true, 'Name is required'],
     trim: true
   },
+  phoneNumber: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   avatar: {
     type: String,
     default: ''
@@ -36,6 +41,18 @@ const userSchema = new mongoose.Schema({
   timezone: {
     type: String,
     default: 'UTC'
+  },
+  language: {
+    type: String,
+    default: 'English'
+  },
+  dateFormat: {
+    type: String,
+    default: 'MM/DD/YYYY'
+  },
+  timeFormat: {
+    type: String,
+    default: '12h'
   },
   createdAt: {
     type: Date,

@@ -27,25 +27,49 @@ router.put('/profile', protect, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const { name, email, password, timezone } = req.body;
+    const {
+      name,
+      email,
+      username,
+      phoneNumber,
+      timezone,
+      language,
+      dateFormat,
+      timeFormat
+    } = req.body;
 
-    // Update fields
+    // Update fields if provided
     if (name) user.name = name;
     if (email) user.email = email;
-    if (password) user.password = password;
+    if (username) user.username = username;
+    if (phoneNumber) user.phoneNumber = phoneNumber;
     if (timezone) user.timezone = timezone;
+    if (language) user.language = language;
+    if (dateFormat) user.dateFormat = dateFormat;
+    if (timeFormat) user.timeFormat = timeFormat;
 
     const updatedUser = await user.save();
 
+    // Send response without sensitive data
     res.json({
       _id: updatedUser._id,
       username: updatedUser.username,
       email: updatedUser.email,
       name: updatedUser.name,
-      timezone: updatedUser.timezone
+      phoneNumber: updatedUser.phoneNumber,
+      timezone: updatedUser.timezone,
+      language: updatedUser.language,
+      dateFormat: updatedUser.dateFormat,
+      timeFormat: updatedUser.timeFormat
     });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.error('Profile update error:', error);
+    if (error.code === 11000) {
+      // Handle duplicate key error
+      res.status(400).json({ message: 'Email or username already exists' });
+    } else {
+      res.status(400).json({ message: error.message });
+    }
   }
 });
 
