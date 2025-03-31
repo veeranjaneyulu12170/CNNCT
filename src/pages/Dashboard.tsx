@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Meeting } from '../types';
 import UpcomingTab from './tabs/UpcomingTab';
@@ -45,31 +45,10 @@ api.interceptors.response.use(
   }
 );
 
-// Utility functions
-const formatTime = (time: string) => {
-  const [hours, minutes] = time.split(':').map(Number);
-  const period = hours >= 12 ? 'pm' : 'am';
-  const hour12 = hours % 12 || 12;
-  const endHour = (hours + 2) % 24;
-  const endHour12 = endHour % 12 || 12;
-  const endPeriod = endHour >= 12 ? 'pm' : 'am';
-  
-  return `${hour12}:${minutes.toString().padStart(2, '0')} ${period} - ${endHour12}:${minutes.toString().padStart(2, '0')} ${endPeriod}`;
-};
-
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  
-  return `${days[date.getDay()]}, ${date.getDate()} ${months[date.getMonth()]}`;
-};
-
 // Main Dashboard Component
 export default function Dashboard() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [activeTab, setActiveTab] = useState('Upcoming');
-  const [loading, setLoading] = useState(true);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
 
   const tabs: Tab[] = [
@@ -90,47 +69,41 @@ export default function Dashboard() {
 
   const fetchMeetings = async () => {
     try {
-      setLoading(true);
-      const response = await api.get('/events');
-
-      // Process and categorize meetings
-      const categorizedMeetings: Meeting[] = response.data;
-
-      setMeetings(categorizedMeetings);
+      await api.get('/events').then(response => {
+        // Process and categorize meetings
+        const categorizedMeetings: Meeting[] = response.data;
+        setMeetings(categorizedMeetings);
+      });
     } catch (error: any) {
       console.error('Error fetching meetings:', error);
       toast.error('Failed to load meetings');
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleAccept = async (meetingId: string) => {
     try {
       // Update the event status to Accepted
-      const response = await api.put(`/events/${meetingId}`, { 
+      await api.put(`/events/${meetingId}`, { 
         status: 'Accepted'
       });
       
-      if (response.status === 200) {
-        // Update local state without fetching all meetings
-        setMeetings(prevMeetings => {
-          const updatedMeetings = [...prevMeetings];
-          
-          const updatedMeeting = updatedMeetings.find(m => m._id === meetingId);
-          if (updatedMeeting) {
-            updatedMeeting.status = 'Accepted';
-            updatedMeeting.participants = updatedMeeting.participants?.map(p => ({
-              ...p,
-              status: 'Accepted'
-            })) || [];
-          }
-          
-          return updatedMeetings;
-        });
+      // Update local state without fetching all meetings
+      setMeetings(prevMeetings => {
+        const updatedMeetings = [...prevMeetings];
         
-        toast.success('All participants accepted successfully');
-      }
+        const updatedMeeting = updatedMeetings.find(m => m._id === meetingId);
+        if (updatedMeeting) {
+          updatedMeeting.status = 'Accepted';
+          updatedMeeting.participants = updatedMeeting.participants?.map(p => ({
+            ...p,
+            status: 'Accepted'
+          })) || [];
+        }
+        
+        return updatedMeetings;
+      });
+      
+      toast.success('All participants accepted successfully');
     } catch (error: any) {
       console.error('Error accepting meeting:', error);
       toast.error('Failed to accept meeting');
@@ -155,7 +128,7 @@ export default function Dashboard() {
       const newStatus = action === 'Accept' ? 'Accepted' as const : 'Rejected' as const;
       
       // Update the entire event with the participant's new status
-      const response = await api.put(`/events/${meetingId}`, { 
+      await api.put(`/events/${meetingId}`, { 
         participantUpdate: {
           email,
           status: newStatus
