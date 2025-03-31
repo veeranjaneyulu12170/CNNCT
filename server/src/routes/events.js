@@ -78,6 +78,7 @@ router.get('/:id', protect, async (req, res) => {
 // Update an event
 router.put('/:id', protect, async (req, res) => {
   try {
+    console.log('Incoming PUT request payload:', req.body);
     const event = await Event.findById(req.params.id);
     
     if (!event) {

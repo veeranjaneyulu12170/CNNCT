@@ -157,31 +157,58 @@ export default function Dashboard() {
 
         const now = new Date();
 
-        // Categorize by status and date
-        // 1. Always add to Pending if status is Pending
+        // Keep all Pending meetings in the Pending tab
         if (formattedMeeting.status === 'Pending') {
           categorizedMeetings.Pending.push(formattedMeeting);
         }
-        
-        // 2. Add to Upcoming if in the future and Accepted
-        if (formattedMeeting.status === 'Accepted' && meetingDate > now) {
-          categorizedMeetings.Upcoming.push(formattedMeeting);
-        }
-        
-        // 3. Add to Past if in the past and Accepted
-        if (formattedMeeting.status === 'Accepted' && meetingDate <= now) {
+
+        // Add all past meetings to the Past tab
+        if (meetingDate <= now) {
           categorizedMeetings.Past.push(formattedMeeting);
         }
-        
-        // 4. Add to Canceled if Rejected
+
+        // Add meetings with accepted participants to the Upcoming tab
+        const hasAcceptedParticipants = formattedMeeting.participants?.some(p => p.status === 'Accepted');
+        if (hasAcceptedParticipants && meetingDate > now) {
+          const meetingDetails = {
+            date: '',
+            time: '',
+            duration: '',
+            meetingType: '',
+            hostName: '',
+            eventTopic: '',
+            teamNumber: '',
+            ...formattedMeeting.meetingDetails
+          };
+          
+          // Create a copy for the Upcoming tab with only accepted participants
+          const upcomingMeeting = {
+            ...formattedMeeting,
+            _id: `${formattedMeeting._id}-upcoming`,
+            meetingDetails,
+            participants: formattedMeeting.participants.filter(p => p.status === 'Accepted')
+          };
+          
+          // Remove any existing copies of this meeting from Upcoming tab
+          const existingIndex = categorizedMeetings.Upcoming.findIndex(
+            m => m._id.includes(formattedMeeting._id)
+          );
+          if (existingIndex !== -1) {
+            categorizedMeetings.Upcoming.splice(existingIndex, 1);
+          }
+          
+          categorizedMeetings.Upcoming.push(upcomingMeeting);
+        }
+
+        // Add Rejected meetings to Canceled tab
         if (formattedMeeting.status === 'Rejected') {
           categorizedMeetings.Canceled.push(formattedMeeting);
         }
-        
-        // 5. If not categorized yet, add to Pending as a fallback
+
+        // If not categorized yet, add to Pending as fallback
         if (!categorizedMeetings.Pending.includes(formattedMeeting) && 
-            !categorizedMeetings.Upcoming.includes(formattedMeeting) && 
-            !categorizedMeetings.Past.includes(formattedMeeting) && 
+            !categorizedMeetings.Upcoming.some(m => m._id.startsWith(formattedMeeting._id)) && 
+            !categorizedMeetings.Past.some(m => m._id.startsWith(formattedMeeting._id)) && 
             !categorizedMeetings.Canceled.includes(formattedMeeting)) {
           categorizedMeetings.Pending.push(formattedMeeting);
         }
@@ -199,9 +226,24 @@ export default function Dashboard() {
 
   const handleAccept = async (meetingId: string) => {
     try {
-      // Update the event status to Accepted
-      const response = await api.put(`/events/${meetingId}`, { 
-        status: 'Accepted'
+      // Find the meeting in the current state
+      const meeting = Object.values(meetings)
+        .flat()
+        .find(m => m._id === meetingId);
+
+      if (!meeting) {
+        console.error('Meeting not found');
+        return;
+      }
+
+      // Get the current user's email from localStorage
+      const userEmail = JSON.parse(localStorage.getItem('user') || '{}').email;
+
+      const response = await api.put(`/api/events/${meetingId}`, {
+        participantUpdate: {
+          email: userEmail,
+          status: 'Accepted'
+        }
       });
       
       if (response.status === 200) {
@@ -209,34 +251,45 @@ export default function Dashboard() {
         setMeetings(prevMeetings => {
           const updatedMeetings = { ...prevMeetings };
           
-          Object.keys(updatedMeetings).forEach(tab => {
-            updatedMeetings[tab] = updatedMeetings[tab].map(meeting => 
-              meeting._id === meetingId 
-                ? { 
-                    ...meeting, 
-                    status: 'Accepted' as const,
-                    participants: (meeting.participants || []).map(p => ({
-                      ...p,
-                      status: 'Accepted' as const
-                    }))
-                  } 
-                : meeting
-            );
-          });
+          // First, update the participant status in the Pending tab
+          updatedMeetings.Pending = updatedMeetings.Pending.map(meeting => 
+            meeting._id === meetingId 
+              ? { 
+                  ...meeting,
+                  participants: (meeting.participants || []).map(p => ({
+                    ...p,
+                    status: p.email === userEmail ? 'Accepted' as const : p.status
+                  }))
+                } 
+              : meeting
+          );
+
+          // Find the meeting that was just updated
+          const updatedMeeting = updatedMeetings.Pending.find(m => m._id === meetingId);
           
-          // Move the meeting to the Upcoming tab if it's in Pending
-          if (updatedMeetings.Pending.some(m => m._id === meetingId)) {
-            const acceptedMeeting = updatedMeetings.Pending.find(m => m._id === meetingId);
-            if (acceptedMeeting) {
-              updatedMeetings.Upcoming.push(acceptedMeeting);
-              updatedMeetings.Pending = updatedMeetings.Pending.filter(m => m._id !== meetingId);
+          if (updatedMeeting) {
+            // Create a copy for the Upcoming tab with only accepted participants
+            const upcomingCopy = {
+              ...updatedMeeting,
+              _id: `${updatedMeeting._id}-upcoming`,
+              participants: updatedMeeting.participants.filter(p => p.status === 'Accepted')
+            };
+
+            // Add to Upcoming tab if it has accepted participants
+            if (upcomingCopy.participants.length > 0) {
+              // Remove any existing copies of this meeting from Upcoming tab
+              updatedMeetings.Upcoming = updatedMeetings.Upcoming.filter(
+                m => !m._id.includes(meetingId)
+              );
+              // Add the new copy
+              updatedMeetings.Upcoming.push(upcomingCopy);
             }
           }
           
           return updatedMeetings;
         });
         
-        toast.success('All participants accepted successfully');
+        toast.success('Meeting accepted successfully');
       }
     } catch (error: any) {
       console.error('Error accepting meeting:', error);
@@ -246,9 +299,16 @@ export default function Dashboard() {
 
   const handleReject = async (meetingId: string) => {
     try {
-      await api.put(`/events/${meetingId}`, { 
-        status: 'Rejected'
+      // Get the current user's email from localStorage
+      const userEmail = JSON.parse(localStorage.getItem('user') || '{}').email;
+
+      await api.put(`/api/events/${meetingId}`, {
+        participantUpdate: {
+          email: userEmail,
+          status: 'Rejected'
+        }
       });
+
       toast.success('Meeting rejected successfully');
       fetchMeetings();
     } catch (error: any) {
@@ -262,7 +322,7 @@ export default function Dashboard() {
       const newStatus = action === 'Accept' ? 'Accepted' as const : 'Rejected' as const;
       
       // Update the entire event with the participant's new status
-      const response = await api.put(`/events/${meetingId}`, { 
+      const response = await api.put(`/api/events/${meetingId}`, { 
         participantUpdate: {
           email,
           status: newStatus
@@ -273,37 +333,53 @@ export default function Dashboard() {
       setMeetings(prevMeetings => {
         const updatedMeetings = { ...prevMeetings };
         
-        // Find the meeting in all tabs and update the participant's status
-        Object.keys(updatedMeetings).forEach(tab => {
-          updatedMeetings[tab] = updatedMeetings[tab].map(meeting => {
-            if (meeting._id === meetingId) {
-              // Ensure participants array exists
-              const currentParticipants = meeting.participants || [];
-              
-              // Update participant status
-              const updatedParticipants = currentParticipants.map(participant => {
-                const participantEmail = participant.user?.email || participant.email;
-                if (participantEmail === email) {
-                  return {
-                    ...participant,
-                    status: newStatus
-                  };
-                }
-                return participant;
-              });
-              
-              // Return updated meeting with type assertion
-              return {
-                ...meeting,
-                participants: updatedParticipants,
-                status: newStatus === 'Accepted' ? 'Accepted' as const : 
-                       updatedParticipants.every(p => p.status === 'Rejected') ? 'Rejected' as const : 
-                       meeting.status
-              } as Meeting;
-            }
-            return meeting;
-          });
+        // Update participant status in the Pending tab
+        updatedMeetings.Pending = updatedMeetings.Pending.map(meeting => {
+          if (meeting._id === meetingId) {
+            // Ensure participants array exists
+            const currentParticipants = meeting.participants || [];
+            
+            // Update participant status
+            const updatedParticipants = currentParticipants.map(participant => {
+              const participantEmail = participant.user?.email || participant.email;
+              if (participantEmail === email) {
+                return {
+                  ...participant,
+                  status: newStatus
+                };
+              }
+              return participant;
+            });
+            
+            return {
+              ...meeting,
+              participants: updatedParticipants
+            } as Meeting;
+          }
+          return meeting;
         });
+
+        // Find the updated meeting
+        const updatedMeeting = updatedMeetings.Pending.find(m => m._id === meetingId);
+        
+        if (updatedMeeting) {
+          // Create a copy for the Upcoming tab with only accepted participants
+          const upcomingCopy = {
+            ...updatedMeeting,
+            _id: `${updatedMeeting._id}-upcoming`,
+            participants: updatedMeeting.participants.filter(p => p.status === 'Accepted')
+          };
+
+          // Add to Upcoming tab if it has accepted participants
+          if (upcomingCopy.participants.length > 0) {
+            // Remove any existing copies of this meeting from Upcoming tab
+            updatedMeetings.Upcoming = updatedMeetings.Upcoming.filter(
+              m => !m._id.includes(meetingId)
+            );
+            // Add the new copy
+            updatedMeetings.Upcoming.push(upcomingCopy);
+          }
+        }
         
         return updatedMeetings;
       });
