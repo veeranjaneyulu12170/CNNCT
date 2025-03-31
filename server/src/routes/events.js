@@ -8,18 +8,35 @@ const router = express.Router();
 // Create a new event
 router.post('/', protect, async (req, res) => {
   try {
-    const { title, backgroundColor, link, emails, description } = req.body;
-
-    // Create the event with the required fields
+    // Ensure required fields
+    const { title, description, link, emails } = req.body;
+    
+    if (!title || !description || !link || !emails || !Array.isArray(emails)) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+    
+    // Create participants array from emails
+    const participants = emails.map(email => ({
+      email,
+      status: 'Pending'
+    }));
+    
+    // Set default status
+    const status = req.body.status || 'Pending';
+    
+    // Create the event
     const event = await Event.create({
-      title,
-      backgroundColor,
-      link,
-      emails,
-      description,
-      createdBy: req.user._id
+      ...req.body,
+      user: req.user.id,
+      status,
+      participants,
+      // Make sure these fields exist
+      meetingDetails: req.body.meetingDetails || JSON.parse(description),
+      createdAt: new Date()
     });
-
+    
+    console.log('Created event:', event);
+    
     res.status(201).json(event);
   } catch (error) {
     console.error('Error creating event:', error);

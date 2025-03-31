@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 
 // Create axios instance with default config
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5001/api',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5001',
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
@@ -80,7 +80,9 @@ export default function Dashboard() {
   const fetchMeetings = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/events');
+      const response = await api.get('/api/events');
+      console.log('API URL:', api.defaults.baseURL);
+      console.log('Fetched events data:', response.data);
 
       // Process and categorize meetings
       const categorizedMeetings: MeetingGroups = {
@@ -90,28 +92,102 @@ export default function Dashboard() {
         Past: []
       };
 
-      response.data.forEach((meeting: Meeting) => {
-        const meetingDate = new Date(meeting.meetingDetails?.date || '');
+      if (!Array.isArray(response.data) || response.data.length === 0) {
+        console.log('No events found or invalid data format');
+        setMeetings(categorizedMeetings);
+        setLoading(false);
+        return;
+      }
+
+      response.data.forEach((meeting: any) => {
+        // Create a properly structured meeting object
+        const formattedMeeting: Meeting = {
+          ...meeting,
+          _id: meeting._id || meeting.id || `temp-${Date.now()}`,
+          date: '',
+          time: '',
+          title: meeting.title || '',
+          description: meeting.description || '',
+          status: meeting.status || 'Pending',
+          participants: [],
+          emails: meeting.emails || []
+        };
+        
+        // Parse meeting details
+        let meetingDetails;
+        try {
+          if (meeting.meetingDetails) {
+            meetingDetails = meeting.meetingDetails;
+          } else if (typeof meeting.description === 'string') {
+            meetingDetails = JSON.parse(meeting.description);
+          }
+        } catch (err) {
+          console.error('Error parsing meeting details:', err);
+          meetingDetails = {};
+        }
+        
+        // Ensure meetingDetails exists
+        formattedMeeting.meetingDetails = meetingDetails || {};
+        
+        // Set date and time from meetingDetails
+        if (meetingDetails) {
+          formattedMeeting.date = meetingDetails.date || '';
+          formattedMeeting.time = meetingDetails.time || '';
+        }
+
+        // Create participants array if it doesn't exist
+        if (!meeting.participants && meeting.emails) {
+          formattedMeeting.participants = meeting.emails.map((email: string) => ({
+            email,
+            status: 'Pending'
+          }));
+        } else {
+          formattedMeeting.participants = meeting.participants || [];
+        }
+
+        // Parse meeting date for categorization
+        let meetingDate = new Date();
+        try {
+          if (meetingDetails?.date) {
+            meetingDate = new Date(meetingDetails.date);
+          }
+        } catch (err) {
+          console.error('Error parsing date:', err);
+        }
+
         const now = new Date();
 
-        // Add to Pending if it's a new event or has pending status
-        if (!meeting.status || meeting.status === 'Pending') {
-          categorizedMeetings.Pending.push(meeting);
+        // Categorize by status and date
+        // 1. Always add to Pending if status is Pending
+        if (formattedMeeting.status === 'Pending') {
+          categorizedMeetings.Pending.push(formattedMeeting);
         }
-
-        // Also add to Upcoming if it's in the future
-        if (meetingDate > now) {
-          categorizedMeetings.Upcoming.push(meeting);
+        
+        // 2. Add to Upcoming if in the future and Accepted
+        if (formattedMeeting.status === 'Accepted' && meetingDate > now) {
+          categorizedMeetings.Upcoming.push(formattedMeeting);
         }
-
-        // Handle other statuses
-        if (meeting.status === 'Rejected') {
-          categorizedMeetings.Canceled.push(meeting);
-        } else if (meetingDate < now) {
-          categorizedMeetings.Past.push(meeting);
+        
+        // 3. Add to Past if in the past and Accepted
+        if (formattedMeeting.status === 'Accepted' && meetingDate <= now) {
+          categorizedMeetings.Past.push(formattedMeeting);
+        }
+        
+        // 4. Add to Canceled if Rejected
+        if (formattedMeeting.status === 'Rejected') {
+          categorizedMeetings.Canceled.push(formattedMeeting);
+        }
+        
+        // 5. If not categorized yet, add to Pending as a fallback
+        if (!categorizedMeetings.Pending.includes(formattedMeeting) && 
+            !categorizedMeetings.Upcoming.includes(formattedMeeting) && 
+            !categorizedMeetings.Past.includes(formattedMeeting) && 
+            !categorizedMeetings.Canceled.includes(formattedMeeting)) {
+          categorizedMeetings.Pending.push(formattedMeeting);
         }
       });
 
+      console.log('Categorized meetings:', categorizedMeetings);
       setMeetings(categorizedMeetings);
     } catch (error: any) {
       console.error('Error fetching meetings:', error);
@@ -249,6 +325,15 @@ export default function Dashboard() {
       </div>
 
       <div className="max-w-4xl mx-auto p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Your Meetings</h2>
+          <button
+            onClick={fetchMeetings}
+            className="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm"
+          >
+            Refresh Dashboard
+          </button>
+        </div>
         <div className="bg-white rounded-[20px] border border-gray-200 overflow-hidden">
           {/* Tabs */}
           <div className="flex border-b">

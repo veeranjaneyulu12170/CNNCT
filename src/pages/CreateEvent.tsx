@@ -126,10 +126,10 @@ export default function CreateEvent() {
         emails: secondFormData.emails,
         backgroundColor: secondFormData.backgroundColor,
         profileImage: secondFormData.profileImage,
-        status: 'Accepted',
+        status: 'Pending',
         participants: secondFormData.emails.map(email => ({
           email,
-          status: 'Accepted'
+          status: 'Pending'
         })),
         meetingDetails: {
           date: formattedDate,
