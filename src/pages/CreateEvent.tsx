@@ -146,9 +146,8 @@ export default function CreateEvent({ onClose, onEventCreated }: CreateEventProp
 
       if (response.status === 201) {
         setShowSuccessNotification(true);
-        onEventCreated();
         setTimeout(() => {
-          onClose();
+          navigate('/event-types');
         }, 1500);
       }
     } catch (error) {
@@ -434,7 +433,7 @@ export default function CreateEvent({ onClose, onEventCreated }: CreateEventProp
             <div className="frame-1171274819">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={() => navigate('/event-types')}
                 className="cancel"
               >
                 Cancel
@@ -644,14 +643,14 @@ export default function CreateEvent({ onClose, onEventCreated }: CreateEventProp
             <div className="flex gap-9 justify-end mr-12 mt-12 max-sm:flex-col max-sm:gap-4">
               <button
                 type="button"
-                onClick={onClose}
-                className="text-lg rounded-2xl cursor-pointer bg-stone-100 border-none h-[50px] w-[190px] max-sm:w-full"
+    onClick={() => setShowSecondForm(false)}
+    className="text-lg rounded-2xl cursor-pointer bg-stone-100 border-none h-[50px] w-[190px] max-sm:w-full"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="text-lg text-white bg-blue-600 rounded-2xl cursor-pointer border-none h-[50px] w-[190px] max-sm:w-full"
+    className="text-lg text-white bg-blue-600 rounded-2xl cursor-pointer border-none h-[50px] w-[190px] max-sm:w-full"
               >
                 Save
               </button>
