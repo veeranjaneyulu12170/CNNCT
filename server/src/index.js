@@ -12,13 +12,32 @@ dotenv.config();
 
 const app = express();
 
-// Middleware
-app.use(cors({
-  origin: '*',
+// CORS configuration based on environment
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://cnnct-scheduler.onrender.com', 'https://p2-ivory.vercel.app'] // Update with your actual frontend URLs
+    : '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
-}));
+};
+
+// Middleware
+app.use(cors(corsOptions));
 app.use(express.json());
+
+// Root route handler
+app.get('/', (req, res) => {
+  res.json({
+    message: 'CNNCT Scheduler API',
+    status: 'online',
+    endpoints: {
+      auth: '/api/auth',
+      events: '/api/events',
+      availability: '/api/availability',
+      users: '/api/users'
+    }
+  });
+});
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -44,4 +63,6 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV}`);
+  console.log(`CORS origins: ${JSON.stringify(corsOptions.origin)}`);
 }); 
