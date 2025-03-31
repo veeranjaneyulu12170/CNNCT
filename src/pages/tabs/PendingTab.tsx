@@ -26,10 +26,8 @@ export default function PendingTab({ meetings, onAccept, onReject, onParticipant
   // Handle Accept All action
   const handleAcceptAll = async (meetingId: string) => {
     try {
-      // Call the onAccept function
       await onAccept(meetingId);
       
-      // Update local state
       setParticipantStatuses(prev => {
         const updatedStatuses = { ...prev };
         if (selectedMeeting?.emails) {
@@ -41,7 +39,6 @@ export default function PendingTab({ meetings, onAccept, onReject, onParticipant
         return updatedStatuses;
       });
 
-      // Close the popup
       setShowParticipants(false);
       setSelectedMeeting(null);
     } catch (error) {
@@ -51,7 +48,6 @@ export default function PendingTab({ meetings, onAccept, onReject, onParticipant
 
   // Handle participant status change locally
   const handleParticipantStatusChange = async (meetingId: string, email: string, isChecked: boolean) => {
-    // Update local state first
     setParticipantStatuses(prev => ({
       ...prev,
       [meetingId]: {
@@ -60,11 +56,9 @@ export default function PendingTab({ meetings, onAccept, onReject, onParticipant
       }
     }));
 
-    // Call the API
     try {
       await onParticipantAction(meetingId, email, isChecked ? 'Accept' : 'Reject');
     } catch (error) {
-      // Revert local state if API call fails
       setParticipantStatuses(prev => ({
         ...prev,
         [meetingId]: {
@@ -76,26 +70,26 @@ export default function PendingTab({ meetings, onAccept, onReject, onParticipant
   };
 
   return (
-    <div onClick={handleClickOutside}>
+    <div onClick={handleClickOutside} className="w-full">
       {meetings.map((meeting) => {
         const meetingDetails = meeting.meetingDetails || JSON.parse(meeting.description);
         const participantCount = meeting.emails?.length || 0;
         const isSelected = selectedMeeting?._id === meeting._id;
         
         return (
-          <div key={meeting._id} className="p-6 border-b last:border-b-0 relative hover:bg-gray-50">
-            <div className="flex justify-between items-center">
-              <div className="flex gap-8">
+          <div key={meeting._id} className="p-4 sm:p-6 border-b last:border-b-0 relative hover:bg-gray-50">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 w-full sm:w-auto">
                 <div className="flex flex-col min-w-[120px]">
-                  <span className="text-[13px] text-blue-500">
+                  <span className="text-[13px] text-blue-500 break-words">
                     {meetingDetails.time} - {meetingDetails.duration}
                   </span>
                   <span className="text-[13px] text-gray-500">
                     {meetingDetails.date}
                   </span>
                 </div>
-                <div className="flex flex-col">
-                  <h3 className="text-[15px] font-medium text-gray-900">
+                <div className="flex flex-col flex-grow">
+                  <h3 className="text-[15px] font-medium text-gray-900 break-words">
                     {meeting.title || meetingDetails.eventTopic}
                   </h3>
                   <p className="text-[13px] text-gray-500">
@@ -114,7 +108,7 @@ export default function PendingTab({ meetings, onAccept, onReject, onParticipant
                     setShowParticipants(true);
                   }
                 }}
-                className="participants-button flex items-center gap-2 hover:text-blue-500"
+                className="participants-button flex items-center gap-2 hover:text-blue-500 ml-0 sm:ml-4"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500">
                   <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -129,13 +123,13 @@ export default function PendingTab({ meetings, onAccept, onReject, onParticipant
             {/* Participant List Popup */}
             {showParticipants && isSelected && (
               <div 
-                className="participants-popup absolute right-6 top-16 bg-white rounded-lg shadow-lg border border-gray-200 w-[400px] z-10"
+                className="participants-popup fixed sm:absolute left-0 sm:left-auto right-0 sm:right-6 top-0 sm:top-16 bg-white rounded-lg shadow-lg border border-gray-200 w-full sm:w-[400px] h-full sm:h-auto z-50 sm:z-10"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="p-4 border-b">
+                <div className="sticky top-0 bg-white p-4 border-b z-10">
                   <div className="flex justify-between items-center">
                     <h3 className="text-[15px] font-medium">
-                      Participant ({participantCount})
+                      Participants ({participantCount})
                     </h3>
                     <div className="flex gap-2">
                       <button 
@@ -143,7 +137,7 @@ export default function PendingTab({ meetings, onAccept, onReject, onParticipant
                           e.stopPropagation();
                           onReject(meeting._id);
                         }}
-                        className="px-4 py-1 text-sm rounded-full text-white bg-red-500 hover:bg-red-600"
+                        className="px-3 sm:px-4 py-1 text-sm rounded-full text-white bg-red-500 hover:bg-red-600"
                       >
                         Reject All
                       </button>
@@ -152,14 +146,14 @@ export default function PendingTab({ meetings, onAccept, onReject, onParticipant
                           e.stopPropagation();
                           handleAcceptAll(meeting._id);
                         }}
-                        className="px-4 py-1 text-sm rounded-full text-white bg-green-500 hover:bg-green-600"
+                        className="px-3 sm:px-4 py-1 text-sm rounded-full text-white bg-green-500 hover:bg-green-600"
                       >
                         Accept All
                       </button>
                     </div>
                   </div>
                 </div>
-                <div className="max-h-[300px] overflow-y-auto">
+                <div className="max-h-[calc(100vh-64px)] sm:max-h-[300px] overflow-y-auto">
                   {meeting.emails?.map((email, index) => {
                     const name = email.split('@')[0]
                       .split('.')
@@ -170,18 +164,18 @@ export default function PendingTab({ meetings, onAccept, onReject, onParticipant
                     
                     return (
                       <div key={index} className="p-4 flex items-center justify-between border-b last:border-b-0">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
                           <img
                             src={`https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`}
                             alt={name}
-                            className="w-8 h-8 rounded-full"
+                            className="w-8 h-8 rounded-full flex-shrink-0"
                           />
-                          <span className="text-sm text-gray-700">{name}</span>
+                          <span className="text-sm text-gray-700 truncate">{email}</span>
                         </div>
                         <input 
                           type="checkbox"
                           checked={isChecked}
-                          className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 flex-shrink-0"
                           onChange={(e) => {
                             e.stopPropagation();
                             handleParticipantStatusChange(meeting._id, email, e.target.checked);

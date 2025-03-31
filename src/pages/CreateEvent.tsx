@@ -25,7 +25,12 @@ interface SecondFormData {
   profileImage: string | null;
 }
 
-export default function CreateEvent() {
+interface CreateEventProps {
+  onClose: () => void;
+  onEventCreated: () => void;
+}
+
+export default function CreateEvent({ onClose, onEventCreated }: CreateEventProps) {
   const navigate = useNavigate();
   const [showSecondForm, setShowSecondForm] = useState(false);
   const [showSuccessNotification, setShowSuccessNotification] = useState(false);

@@ -1,30 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Meeting, MeetingGroups, TabType } from '../types';
+import { Meeting } from '../types';
 import UpcomingTab from './tabs/UpcomingTab';
 import PendingTab from './tabs/PendingTab';
 import CanceledTab from './tabs/CanceledTab';
 import PastTab from './tabs/PastTab';
-import { toast } from 'sonner';
+import { toast, Toaster } from 'sonner';
+import CreateEvent from './CreateEvent';
+
+interface Tab {
+  name: string;
+  count: number;
+}
+
+type MeetingStatus = 'Accepted' | 'Pending' | 'Rejected' | 'Past';
 
 // Create axios instance with default config
 const api = axios.create({
   baseURL: 'http://localhost:5000/api',
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json'
-  }
+  },
 });
 
-// Add request interceptor to add token and handle errors
+// Add request interceptor to include auth token
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
-}, (error) => {
-  return Promise.reject(error);
 });
 
 // Add response interceptor to handle errors
@@ -62,16 +67,22 @@ const formatDate = (dateString: string) => {
 
 // Main Dashboard Component
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState<TabType>('Upcoming');
-  const [meetings, setMeetings] = useState<MeetingGroups>({
-    Upcoming: [],
-    Pending: [],
-    Canceled: [],
-    Past: []
-  });
+  const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [activeTab, setActiveTab] = useState('Upcoming');
   const [loading, setLoading] = useState(true);
-  
-  const tabs: TabType[] = ['Upcoming', 'Pending', 'Canceled', 'Past'];
+  const [showCreateEvent, setShowCreateEvent] = useState(false);
+
+  const tabs: Tab[] = [
+    { name: 'Upcoming', count: meetings.filter(m => m.status === 'Accepted').length },
+    { name: 'Pending', count: meetings.filter(m => m.status === 'Pending').length },
+    { name: 'Canceled', count: meetings.filter(m => m.status === 'Rejected').length },
+    { name: 'Past', count: meetings.filter(m => m.status === ('Past' as MeetingStatus)).length }
+  ];
+
+  // Utility function for combining class names
+  const classNames = (...classes: string[]) => {
+    return classes.filter(Boolean).join(' ');
+  };
 
   useEffect(() => {
     fetchMeetings();
@@ -83,34 +94,7 @@ export default function Dashboard() {
       const response = await api.get('/events');
 
       // Process and categorize meetings
-      const categorizedMeetings: MeetingGroups = {
-        Upcoming: [],
-        Pending: [],
-        Canceled: [],
-        Past: []
-      };
-
-      response.data.forEach((meeting: Meeting) => {
-        const meetingDate = new Date(meeting.meetingDetails?.date || '');
-        const now = new Date();
-
-        // Add to Pending if it's a new event or has pending status
-        if (!meeting.status || meeting.status === 'Pending') {
-          categorizedMeetings.Pending.push(meeting);
-        }
-
-        // Also add to Upcoming if it's in the future
-        if (meetingDate > now) {
-          categorizedMeetings.Upcoming.push(meeting);
-        }
-
-        // Handle other statuses
-        if (meeting.status === 'Rejected') {
-          categorizedMeetings.Canceled.push(meeting);
-        } else if (meetingDate < now) {
-          categorizedMeetings.Past.push(meeting);
-        }
-      });
+      const categorizedMeetings: Meeting[] = response.data;
 
       setMeetings(categorizedMeetings);
     } catch (error: any) {
@@ -131,30 +115,15 @@ export default function Dashboard() {
       if (response.status === 200) {
         // Update local state without fetching all meetings
         setMeetings(prevMeetings => {
-          const updatedMeetings = { ...prevMeetings };
+          const updatedMeetings = [...prevMeetings];
           
-          Object.keys(updatedMeetings).forEach(tab => {
-            updatedMeetings[tab] = updatedMeetings[tab].map(meeting => 
-              meeting._id === meetingId 
-                ? { 
-                    ...meeting, 
-                    status: 'Accepted' as const,
-                    participants: (meeting.participants || []).map(p => ({
-                      ...p,
-                      status: 'Accepted' as const
-                    }))
-                  } 
-                : meeting
-            );
-          });
-          
-          // Move the meeting to the Upcoming tab if it's in Pending
-          if (updatedMeetings.Pending.some(m => m._id === meetingId)) {
-            const acceptedMeeting = updatedMeetings.Pending.find(m => m._id === meetingId);
-            if (acceptedMeeting) {
-              updatedMeetings.Upcoming.push(acceptedMeeting);
-              updatedMeetings.Pending = updatedMeetings.Pending.filter(m => m._id !== meetingId);
-            }
+          const updatedMeeting = updatedMeetings.find(m => m._id === meetingId);
+          if (updatedMeeting) {
+            updatedMeeting.status = 'Accepted';
+            updatedMeeting.participants = updatedMeeting.participants?.map(p => ({
+              ...p,
+              status: 'Accepted'
+            })) || [];
           }
           
           return updatedMeetings;
@@ -195,39 +164,22 @@ export default function Dashboard() {
       
       // Update local state without fetching all meetings
       setMeetings(prevMeetings => {
-        const updatedMeetings = { ...prevMeetings };
+        const updatedMeetings = [...prevMeetings];
         
-        // Find the meeting in all tabs and update the participant's status
-        Object.keys(updatedMeetings).forEach(tab => {
-          updatedMeetings[tab] = updatedMeetings[tab].map(meeting => {
-            if (meeting._id === meetingId) {
-              // Ensure participants array exists
-              const currentParticipants = meeting.participants || [];
-              
-              // Update participant status
-              const updatedParticipants = currentParticipants.map(participant => {
-                const participantEmail = participant.user?.email || participant.email;
-                if (participantEmail === email) {
-                  return {
-                    ...participant,
-                    status: newStatus
-                  };
-                }
-                return participant;
-              });
-              
-              // Return updated meeting with type assertion
+        const updatedMeeting = updatedMeetings.find(m => m._id === meetingId);
+        if (updatedMeeting) {
+          updatedMeeting.status = newStatus;
+          updatedMeeting.participants = updatedMeeting.participants?.map(p => {
+            const participantEmail = p.user?.email || p.email;
+            if (participantEmail === email) {
               return {
-                ...meeting,
-                participants: updatedParticipants,
-                status: newStatus === 'Accepted' ? 'Accepted' as const : 
-                       updatedParticipants.every(p => p.status === 'Rejected') ? 'Rejected' as const : 
-                       meeting.status
-              } as Meeting;
+                ...p,
+                status: newStatus
+              };
             }
-            return meeting;
-          });
-        });
+            return p;
+          }) || [];
+        }
         
         return updatedMeetings;
       });
@@ -239,61 +191,99 @@ export default function Dashboard() {
     }
   };
 
-  return (
-    <div className='bg-[#f3f3f1] min-h-screen'>
-      <div className="p-6 border-b bg-white">
-        <h1 className="text-2xl font-poppins font-semibold mb-1">Booking</h1>
-        <p className="text-black opacity-90 text-sm font-poppins">
-          See upcoming and past events booked through your event type links.
-        </p>
-      </div>
+  const handleEventCreated = () => {
+    fetchMeetings();
+    setShowCreateEvent(false);
+  };
 
-      <div className="max-w-4xl mx-auto p-6">
-        <div className="bg-white rounded-[20px] border border-gray-200 overflow-hidden">
-          {/* Tabs */}
-          <div className="flex border-b">
-            {tabs.map((tab) => (
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white rounded-lg shadow">
+          {/* Header */}
+          <div className="px-4 sm:px-6 lg:px-8 py-6 border-b border-gray-200">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
+              <h2 className="text-xl font-semibold text-gray-900">Meetings</h2>
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`
-                  flex-1 py-4 text-sm font-medium
-                  ${activeTab === tab 
-                    ? 'border-b-2 border-blue-500 text-blue-600' 
-                    : 'text-gray-500'}
-                `}
+                onClick={() => setShowCreateEvent(true)}
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
-                {tab}
+                <svg xmlns="http://www.w3.org/2000/svg" className="-ml-1 mr-2 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                </svg>
+                Create Meeting
               </button>
-            ))}
+            </div>
           </div>
 
-          {/* Content Area */}
-          {loading ? (
-            <div className="p-8 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+          {/* Tabs */}
+          <div className="border-b border-gray-200">
+            <div className="px-4 sm:px-6 lg:px-8">
+              <nav className="-mb-px flex space-x-8 overflow-x-auto">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.name}
+                    onClick={() => setActiveTab(tab.name)}
+                    className={classNames(
+                      tab.name === activeTab
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
+                      'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm'
+                    )}
+                  >
+                    {tab.name}
+                    {tab.count > 0 && (
+                      <span className={classNames(
+                        tab.name === activeTab ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-900',
+                        'ml-3 py-0.5 px-2.5 rounded-full text-xs font-medium'
+                      )}>
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </nav>
             </div>
-          ) : meetings[activeTab].length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              No {activeTab.toLowerCase()} meetings
-            </div>
-          ) : (
-            <>
-              {activeTab === 'Upcoming' && <UpcomingTab meetings={meetings.Upcoming} />}
-              {activeTab === 'Pending' && (
-                <PendingTab 
-                  meetings={meetings.Pending}
-                  onAccept={handleAccept}
-                  onReject={handleReject}
-                  onParticipantAction={handleParticipantAction}
-                />
-              )}
-              {activeTab === 'Canceled' && <CanceledTab meetings={meetings.Canceled} />}
-              {activeTab === 'Past' && <PastTab meetings={meetings.Past} />}
-            </>
-          )}
+          </div>
+
+          {/* Tab Content */}
+          <div className="divide-y divide-gray-200">
+            {activeTab === 'Upcoming' && (
+              <UpcomingTab meetings={meetings.filter(m => m.status === 'Accepted')} />
+            )}
+            {activeTab === 'Pending' && (
+              <PendingTab
+                meetings={meetings.filter(m => m.status === 'Pending')}
+                onAccept={handleAccept}
+                onReject={handleReject}
+                onParticipantAction={handleParticipantAction}
+              />
+            )}
+            {activeTab === 'Canceled' && (
+              <CanceledTab meetings={meetings.filter(m => m.status === 'Rejected')} />
+            )}
+            {activeTab === 'Past' && (
+              <PastTab meetings={meetings.filter(m => m.status === ('Past' as MeetingStatus))} />
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Create Event Modal */}
+      {showCreateEvent && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={() => setShowCreateEvent(false)} />
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+            <div className="inline-block w-full max-w-2xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg sm:p-8">
+              <CreateEvent onClose={() => setShowCreateEvent(false)} onEventCreated={handleEventCreated} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Container */}
+      <Toaster position="bottom-right" />
     </div>
   );
 }
