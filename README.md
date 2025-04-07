@@ -1,6 +1,7 @@
 # CNNCT - Meeting & Event Scheduling Platform
 
 A modern web application for scheduling and managing meetings and events. Built with React, Node.js, Express, and MongoDB.
+LINK: https://cnnct-1.onrender.com 
 
 ## Features
 
