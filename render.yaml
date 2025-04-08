@@ -21,4 +21,7 @@ services:
         value: DENY
       - path: /*
         name: X-Content-Type-Options
-        value: nosniff 
+        value: nosniff
+      - path: /*
+        name: Access-Control-Allow-Origin
+        value: "*" 
