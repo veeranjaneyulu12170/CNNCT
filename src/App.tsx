@@ -19,7 +19,7 @@ import './styles/auth.css';
 
 function App() {
   return (
-    <Router>
+    <Router basename="/">
       <Suspense fallback={<LoadingSpinner />}>
         <Routes>
           <Route path="/" element={<Landing />} />
