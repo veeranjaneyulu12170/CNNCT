@@ -642,7 +642,7 @@ export default function Dashboard() {
 
   return (
     <div className='bg-[#f3f3f1] min-h-screen'>
-      <div className="p-6 border-b bg-white">
+      <div className="p-6 border-b bg-[#f3f3f1]">
         <h1 className="text-2xl font-poppins font-semibold mb-1">Booking</h1>
         <p className="text-black opacity-90 text-sm font-poppins">
           See upcoming and past events booked through your event type links.

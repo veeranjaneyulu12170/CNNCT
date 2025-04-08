@@ -125,31 +125,42 @@ export default function Layout() {
     <div className="min-h-screen bg-gray-50">
       <div className="flex h-screen">
         {/* Sidebar */}
-        <div className="w-64 bg-white border-r border-gray-200 p-4 flex flex-col">
-          <div className="flex items-center mb-8">
-            <img src="/logo.svg" alt="CNNCT" className="h-8" />
-          </div>
+        <div className="w-[220px] bg-white border-r border-gray-200 p-4 flex flex-col">
+        <div className="inline-flex items-center gap-[3px]  ml-2 mt-4 mb-6">
+              <img
+                className="w-24 md:w-24 h-4 md:h-6"
+                alt="Cbi plug eu"
+                src="https://res.cloudinary.com/dvvhyfrjr/image/upload/v1742549448/bcxu4sgnwmnpwmlmk1vs.png"
+              />
+            </div>
           
-          <nav className="space-y-6 image.png">
-            {navigation.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.name}
-                  to={item.path}
-                  className={cn(
-                    'flex items-center px-4 py-2 text-sm font-medium rounded-lg',
-                    location.pathname === item.path
-                      ? 'bg-blue-50 text-blue-600'
-                      : 'text-gray-600 hover:bg-gray-50'
-                  )}
-                >
-                  <Icon className="mr-3 h-5 w-5" />
-                  {item.name}
-                </Link>
-              );
-            })}
-          </nav>
+            <nav className="space-y-6">
+  {navigation.map((item) => {
+    const Icon = item.icon;
+    return (
+      <Link
+        key={item.name}
+        to={item.path}
+        className={cn(
+          'flex items-center px-4 py-4 text-sm font-medium rounded-lg gap-2',
+          location.pathname === item.path
+            ? 'bg-blue-50 text-blue-600'
+            : 'text-gray-600 hover:bg-gray-50'
+        )}
+      >
+        <Icon 
+          className={cn(
+            'mr-3 h-5 w-5',
+            location.pathname === item.path
+              ? 'text-blue-600'
+              : 'text-gray-600'
+          )} 
+        />
+        {item.name}
+      </Link>
+    );
+  })}
+</nav>
           
           {/* Spacer to push logout to bottom */}
           <div className="flex-grow"></div>
