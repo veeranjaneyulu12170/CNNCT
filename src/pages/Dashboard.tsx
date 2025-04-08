@@ -404,11 +404,9 @@ export default function Dashboard() {
       // Use the participant's email for the update
       const participantEmail = getParticipantEmail(participant);
 
-      const response = await api.put(`/api/events/${originalMeetingId}`, {
-        participantUpdate: {
-          email: participantEmail,
-          status: 'Accepted'
-        }
+      // Make sure the API request format is correct
+      const response = await api.put(`/api/events/${originalMeetingId}/participants/${participantEmail}`, {
+        status: 'Accepted'
       });
       
       if (response.status === 200) {
@@ -497,11 +495,9 @@ export default function Dashboard() {
         return;
       }
 
-      await api.put(`/api/events/${originalMeetingId}`, {
-        participantUpdate: {
-          email: userEmail,
-          status: 'Rejected'
-        }
+      // Make sure the API request format is correct
+      await api.put(`/api/events/${originalMeetingId}/participants/${userEmail}`, {
+        status: 'Rejected'
       });
 
       toast.success('Meeting rejected successfully');
@@ -518,11 +514,9 @@ export default function Dashboard() {
 
   const handleParticipantAction = async (meetingId: string, email: string, action: 'Accept' | 'Reject') => {
     try {
-      // Get original meeting ID (without -upcoming suffix)
       const originalMeetingId = meetingId.replace('-upcoming', '');
       const newStatus = action === 'Accept' ? 'Accepted' as const : 'Rejected' as const;
       
-      // Find the meeting
       const meeting = findMeetingById(meetings, originalMeetingId);
       
       if (!meeting) {
@@ -531,112 +525,101 @@ export default function Dashboard() {
         return;
       }
 
-      // Find the participant using the new emailsMatch function
-      let participant = meeting.participants?.find(p => emailsMatch(getParticipantEmail(p), email));
-      
-      // If participant is not found, create a new participant entry
+      const participant = meeting.participants?.find(p => emailsMatch(getParticipantEmail(p), email));
       if (!participant) {
-        console.log(`Creating new participant entry for email: ${email}`);
-        participant = {
-          email: email,
-          status: 'Pending'
-        };
-        meeting.participants.push(participant);
+        toast.error('Participant not found');
+        return;
       }
 
-      // Use the participant's original email for the update
       const participantEmail = getParticipantEmail(participant);
       console.log(`Updating participant ${participantEmail} in meeting ${originalMeetingId} to ${newStatus}`);
 
-      // Log the request payload for debugging
-      const payload = { 
-        participantUpdate: {
-          email: participantEmail,
-          status: newStatus
-        }
-      };
-      console.log('Request payload:', payload);
+      // Properly encode the email address for the URL
+      const encodedEmail = encodeURIComponent(participantEmail);
+      
+      const response = await api.put(`/api/events/${originalMeetingId}/participants/${encodedEmail}`, {
+        status: newStatus
+      });
 
-      // Add error handling to get more information
-      try {
-        const response = await api.put(`/api/events/${originalMeetingId}`, payload);
-        console.log('Server response:', response.data);
-        
-        if (response.status === 200) {
-          // Update local state without fetching all meetings
-          setMeetings(prevMeetings => {
-            const updatedMeetings = { ...prevMeetings } as MeetingGroups;
+      if (response.status === 200) {
+        setMeetings(prevMeetings => {
+          const updatedMeetings = { ...prevMeetings } as MeetingGroups;
+          
+          if (updatedMeetings.Pending) {
+            updatedMeetings.Pending = updatedMeetings.Pending.map(meeting => {
+              if (meeting._id === originalMeetingId) {
+                const updatedParticipants = meeting.participants.map(p => 
+                  emailsMatch(getParticipantEmail(p), email) ? { ...p, status: newStatus } : p
+                );
+                return { ...meeting, participants: updatedParticipants };
+              }
+              return meeting;
+            });
+
+            const updatedMeeting = updatedMeetings.Pending.find(m => m._id === originalMeetingId);
             
-            // Update participant status in the Pending tab
-            if (updatedMeetings.Pending) {
-              updatedMeetings.Pending = updatedMeetings.Pending.map(meeting => {
-                if (meeting._id === originalMeetingId) {
-                  const updatedParticipants = meeting.participants.map(p => {
-                    if (emailsMatch(getParticipantEmail(p), email)) {
-                      return { ...p, status: newStatus };
-                    }
-                    return p;
-                  });
-
-                  return {
-                    ...meeting,
-                    participants: updatedParticipants
-                  };
-                }
-                return meeting;
-              });
-
-              // Find the updated meeting
-              const updatedMeeting = updatedMeetings.Pending.find(m => m._id === originalMeetingId);
+            if (updatedMeeting) {
+              const acceptedParticipants = updatedMeeting.participants.filter(p => p.status === 'Accepted');
               
-              if (updatedMeeting) {
-                // Create a copy for the Upcoming tab with only accepted participants
-                const upcomingCopy: Meeting = {
+              // Handle Upcoming tab
+              if (acceptedParticipants.length > 0) {
+                const upcomingCopy = {
                   ...updatedMeeting,
                   _id: `${updatedMeeting._id}-upcoming`,
-                  participants: updatedMeeting.participants.filter(p => p.status === 'Accepted'),
+                  participants: acceptedParticipants,
                   meetingDetails: {
+                    ...updatedMeeting.meetingDetails,
                     date: updatedMeeting.meetingDetails?.date || updatedMeeting.date,
                     time: updatedMeeting.meetingDetails?.time || updatedMeeting.time,
                     duration: updatedMeeting.meetingDetails?.duration || '1 hour',
                     meetingType: updatedMeeting.meetingDetails?.meetingType || 'default',
-                    hostName: updatedMeeting.meetingDetails?.hostName || 'Unknown Host',
-                    ...(updatedMeeting.meetingDetails?.eventTopic ? { eventTopic: updatedMeeting.meetingDetails.eventTopic } : {}),
-                    ...(updatedMeeting.meetingDetails?.teamNumber ? { teamNumber: updatedMeeting.meetingDetails.teamNumber } : {})
+                    hostName: updatedMeeting.meetingDetails?.hostName || 'Unknown Host'
                   }
                 };
 
-                // Add to Upcoming tab if it has accepted participants
-                if (upcomingCopy.participants.length > 0) {
-                  // Remove any existing copies of this meeting from Upcoming tab
-                  if (!updatedMeetings.Upcoming) {
-                    updatedMeetings.Upcoming = [];
-                  }
+                if (!updatedMeetings.Upcoming) {
+                  updatedMeetings.Upcoming = [];
+                }
+                updatedMeetings.Upcoming = [
+                  ...updatedMeetings.Upcoming.filter(m => !m._id.includes(originalMeetingId)),
+                  upcomingCopy
+                ];
+              } else {
+                // Remove from Upcoming if no accepted participants
+                if (updatedMeetings.Upcoming) {
                   updatedMeetings.Upcoming = updatedMeetings.Upcoming.filter(
                     m => !m._id.includes(originalMeetingId)
                   );
-                  // Add the new copy
-                  updatedMeetings.Upcoming.push(upcomingCopy);
                 }
               }
-            }
-            
-            return updatedMeetings;
-          });
 
-          toast.success(`Participant ${action === 'Accept' ? 'accepted' : 'rejected'} successfully`);
-        }
-      } catch (apiError: any) {
-        console.error('API error details:', apiError.response?.data);
-        throw apiError; // Rethrow to be caught by outer catch block
+              // Handle Rejected tab
+              if (updatedMeeting.participants.every(p => p.status === 'Rejected')) {
+                if (!updatedMeetings.Rejected) {
+                  updatedMeetings.Rejected = [];
+                }
+                updatedMeetings.Rejected = [
+                  ...updatedMeetings.Rejected.filter(m => m._id !== originalMeetingId),
+                  updatedMeeting
+                ];
+                updatedMeetings.Pending = updatedMeetings.Pending.filter(m => m._id !== originalMeetingId);
+              }
+
+              // Remove from Pending if all participants have responded
+              if (updatedMeeting.participants.every(p => p.status === 'Accepted' || p.status === 'Rejected')) {
+                updatedMeetings.Pending = updatedMeetings.Pending.filter(m => m._id !== originalMeetingId);
+              }
+            }
+          }
+          
+          return updatedMeetings;
+        });
+
+        toast.success(`Participant ${action.toLowerCase()}ed successfully`);
       }
     } catch (error: any) {
-      console.error(`Error ${action === 'Accept' ? 'accepting' : 'rejecting'} participant:`, error);
-      if (error.response?.data?.message) {
-        toast.error(`Failed to ${action === 'Accept' ? 'accept' : 'reject'} participant: ${error.response.data.message}`);
-      } else {
-        toast.error(`Failed to ${action === 'Accept' ? 'accept' : 'reject'} participant`);
-      }
+      console.error(`Error ${action.toLowerCase()}ing participant:`, error);
+      toast.error(error.response?.data?.message || `Failed to ${action.toLowerCase()} participant`);
     }
   };
 

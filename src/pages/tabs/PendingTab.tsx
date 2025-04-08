@@ -49,34 +49,51 @@ export default function PendingTab({ meetings, onAccept, onReject, onParticipant
   // Handle Accept All action
   const handleAcceptAll = async (meetingId: string) => {
     try {
-      // Call the onAccept function
-      await onAccept(meetingId);
-      
-      // Update local state for all participants
       const meeting = meetings.find(m => m._id === meetingId);
-      if (meeting) {
-        const updatedStatuses = { ...participantStatuses };
-        
-        // Get emails from either participants or emails array
-        const emails = meeting.participants 
-          ? meeting.participants.map(p => p.email || (p.user?.email || ''))
-          : meeting.emails || [];
-        
-        // Set all to Accepted
-        emails.forEach(email => {
-          if (email && updatedStatuses[meetingId]) {
-            updatedStatuses[meetingId][email] = 'Accepted';
+      if (!meeting) {
+        toast.error('Meeting not found');
+        return;
+      }
+
+      // Get all pending participants
+      const pendingParticipants = meeting.participants.filter(p => p.status !== 'Accepted');
+      
+      if (pendingParticipants.length === 0) {
+        toast.info('No pending participants to accept');
+        return;
+      }
+      
+      // Show loading toast
+      const loadingToast = toast.loading(`Accepting ${pendingParticipants.length} participants...`);
+      
+      // Update each participant's status
+      let successCount = 0;
+      let errorCount = 0;
+      
+      for (const participant of pendingParticipants) {
+        const email = participant.email || (participant.user?.email || '');
+        if (email) {
+          try {
+            await onParticipantAction(meetingId, email, 'Accept');
+            successCount++;
+          } catch (error) {
+            console.error(`Error accepting participant ${email}:`, error);
+            errorCount++;
           }
-        });
-        
-        setParticipantStatuses(updatedStatuses);
+        }
+      }
+      
+      // Update toast based on results
+      toast.dismiss(loadingToast);
+      if (errorCount === 0) {
+        toast.success(`Successfully accepted all ${successCount} participants`);
+      } else {
+        toast.warning(`Accepted ${successCount} participants, ${errorCount} failed`);
       }
 
       // Close the popup
       setShowParticipants(false);
       setSelectedMeeting(null);
-      
-      toast.success('All participants accepted');
     } catch (error) {
       console.error('Error accepting all participants:', error);
       toast.error('Failed to accept participants');
@@ -86,34 +103,51 @@ export default function PendingTab({ meetings, onAccept, onReject, onParticipant
   // Handle Reject All action
   const handleRejectAll = async (meetingId: string) => {
     try {
-      // Call the onReject function
-      await onReject(meetingId);
-      
-      // Update local state for all participants
       const meeting = meetings.find(m => m._id === meetingId);
-      if (meeting) {
-        const updatedStatuses = { ...participantStatuses };
-        
-        // Get emails from either participants or emails array
-        const emails = meeting.participants 
-          ? meeting.participants.map(p => p.email || (p.user?.email || ''))
-          : meeting.emails || [];
-        
-        // Set all to Rejected
-        emails.forEach(email => {
-          if (email && updatedStatuses[meetingId]) {
-            updatedStatuses[meetingId][email] = 'Rejected';
+      if (!meeting) {
+        toast.error('Meeting not found');
+        return;
+      }
+
+      // Get all pending participants
+      const pendingParticipants = meeting.participants.filter(p => p.status !== 'Rejected');
+      
+      if (pendingParticipants.length === 0) {
+        toast.info('No pending participants to reject');
+        return;
+      }
+      
+      // Show loading toast
+      const loadingToast = toast.loading(`Rejecting ${pendingParticipants.length} participants...`);
+      
+      // Update each participant's status
+      let successCount = 0;
+      let errorCount = 0;
+      
+      for (const participant of pendingParticipants) {
+        const email = participant.email || (participant.user?.email || '');
+        if (email) {
+          try {
+            await onParticipantAction(meetingId, email, 'Reject');
+            successCount++;
+          } catch (error) {
+            console.error(`Error rejecting participant ${email}:`, error);
+            errorCount++;
           }
-        });
-        
-        setParticipantStatuses(updatedStatuses);
+        }
+      }
+      
+      // Update toast based on results
+      toast.dismiss(loadingToast);
+      if (errorCount === 0) {
+        toast.success(`Successfully rejected all ${successCount} participants`);
+      } else {
+        toast.warning(`Rejected ${successCount} participants, ${errorCount} failed`);
       }
 
       // Close the popup
       setShowParticipants(false);
       setSelectedMeeting(null);
-      
-      toast.success('All participants rejected');
     } catch (error) {
       console.error('Error rejecting all participants:', error);
       toast.error('Failed to reject participants');
@@ -178,7 +212,7 @@ export default function PendingTab({ meetings, onAccept, onReject, onParticipant
           const isSelected = selectedMeeting?._id === meeting._id;
           
           return (
-            <div key={meeting._id} className="p-6 border-b last:border-b-0 relative hover:bg-gray-50">
+            <div key={meeting._id} className="h-screen p-6 border-b last:border-b-0 relative hover:bg-gray-50">
               <div className="flex justify-between items-center">
                 <div className="flex gap-8">
                   <div className="flex flex-col min-w-[120px]">
@@ -230,7 +264,7 @@ export default function PendingTab({ meetings, onAccept, onReject, onParticipant
               {/* Participant List Popup */}
               {showParticipants && isSelected && (
                 <div 
-                  className="participants-popup absolute right-6 top-16 bg-white rounded-lg shadow-lg border border-gray-200 w-[400px] z-10"
+                  className="participants-popup absolute right-6 top-16 bg-white rounded-lg shadow-lg border border-gray-200 w-[400px] z-50 overflow-visible"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="p-4 border-b">
